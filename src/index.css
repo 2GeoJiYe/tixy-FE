@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --color-background: 248 249 252;
+  --color-foreground: 15 23 42;
+  --color-surface: 255 255 255;
+  --color-panel: 255 255 255;
+  --color-muted: 241 245 249;
+  --color-muted-foreground: 100 116 139;
+  --color-border: 226 232 240;
+  --color-primary: 225 29 72;
+  --color-primary-foreground: 255 255 255;
+  --color-success: 22 163 74;
+  --color-warning: 234 88 12;
+  --color-danger: 220 38 38;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: theme(fontFamily.sans);
+  background:
+    radial-gradient(circle at top left, rgba(225, 29, 72, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(248, 249, 252, 1), rgba(255, 255, 255, 1));
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
