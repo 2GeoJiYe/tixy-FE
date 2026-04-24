@@ -7,7 +7,12 @@ import { SearchBar } from "@/features/events/components/search-bar";
 import { SearchResultHeader } from "@/features/events/components/search-result-header";
 import { categoryOptions, eventSortOptions, locationOptions } from "@/features/events/constants";
 import type { EventSearchFilters, EventSortValue } from "@/features/events/types";
-import { normalizeEventSort, sortEvents, toEventCardModel } from "@/features/events/utils";
+import {
+  normalizeEventSort,
+  normalizeEventStatus,
+  sortEvents,
+  toEventCardModel,
+} from "@/features/events/utils";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
 import { Button } from "@/shared/ui/button";
@@ -21,7 +26,7 @@ function readFilters(searchParams: URLSearchParams): EventSearchFilters {
     keyword: searchParams.get("q") ?? undefined,
     reservePossible:
       searchParams.get("reservePossible") == null
-        ? undefined
+        ? true
         : searchParams.get("reservePossible") === "true",
     area: readArray("area"),
     category: readArray("category"),
@@ -50,6 +55,18 @@ function writeFilters(filters: EventSearchFilters, sort: EventSortValue) {
   return params;
 }
 
+function hasAdditionalFilters(filters: EventSearchFilters) {
+  return Boolean(
+    filters.keyword ||
+      filters.area?.length ||
+      filters.category?.length ||
+      filters.startDate ||
+      filters.endDate ||
+      filters.startPrice != null ||
+      filters.endPrice != null,
+  );
+}
+
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -64,10 +81,15 @@ export function SearchPage() {
     setDraftSort(sort);
   }, [filters, sort]);
 
-  const sortedItems = useMemo(
-    () => sortEvents(query.data ?? [], sort).map((event) => toEventCardModel(event)),
-    [query.data, sort],
-  );
+  const defaultLanding = !hasAdditionalFilters(filters) && filters.reservePossible === true;
+  const sortedItems = useMemo(() => {
+    const baseItems =
+      filters.reservePossible === true
+        ? (query.data ?? []).filter((event) => normalizeEventStatus(event.eventStatus) === "OPEN")
+        : (query.data ?? []);
+
+    return sortEvents(baseItems, sort).map((event) => toEventCardModel(event));
+  }, [filters.reservePossible, query.data, sort]);
 
   const chips = useMemo(() => {
     const result: Array<{ label: string; onRemove: () => void }> = [];
@@ -77,6 +99,16 @@ export function SearchPage() {
         label: `검색어 ${filters.keyword}`,
         onRemove: () => {
           const next = { ...filters, keyword: undefined };
+          setSearchParams(writeFilters(next, sort));
+        },
+      });
+    }
+
+    if (filters.reservePossible === false) {
+      result.push({
+        label: "전체 상태",
+        onRemove: () => {
+          const next = { ...filters, reservePossible: true };
           setSearchParams(writeFilters(next, sort));
         },
       });
@@ -117,9 +149,10 @@ export function SearchPage() {
   };
 
   const clearFilters = () => {
-    setDraftFilters({});
+    const nextFilters = { reservePossible: true };
+    setDraftFilters(nextFilters);
     setDraftSort("recommended");
-    setSearchParams(writeFilters({}, "recommended"));
+    setSearchParams(writeFilters(nextFilters, "recommended"));
   };
 
   const unauthorized = query.error && "status" in query.error && query.error.status === 401;
@@ -136,7 +169,7 @@ export function SearchPage() {
       />
 
       <SearchResultHeader
-        title={filters.keyword ? `"${filters.keyword}" 검색` : "전체 공연"}
+        title={filters.keyword ? `"${filters.keyword}" 검색` : defaultLanding ? "판매 중 공연" : "공연 검색"}
         resultCount={sortedItems.length}
         sortLabel={eventSortOptions.find((option) => option.value === sort)?.label ?? "추천순"}
       />
@@ -191,10 +224,7 @@ export function SearchPage() {
           {query.isLoading ? (
             <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="aspect-[0.72] animate-pulse rounded-card bg-muted"
-                />
+                <div key={index} className="aspect-[0.72] animate-pulse rounded-card bg-muted" />
               ))}
             </div>
           ) : null}

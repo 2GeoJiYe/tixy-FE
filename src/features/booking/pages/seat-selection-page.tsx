@@ -356,6 +356,7 @@ export function SeatSelectionPage() {
             </div>
           ) : null}
 
+          <div className="mt-5 xl:hidden">{holdAction}</div>
           <div className="mt-5 hidden xl:block">{holdAction}</div>
         </div>
 

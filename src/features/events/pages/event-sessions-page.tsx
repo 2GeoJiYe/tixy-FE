@@ -18,7 +18,7 @@ export function EventSessionsPage() {
   useStickyPageAction(
     firstSession ? (
       <Link to={`/events/${eventId}/sessions/${firstSession.sessionId}`}>
-        <Button fullWidth>가장 빠른 회차 보기</Button>
+        <Button fullWidth>예매하기</Button>
       </Link>
     ) : null,
     Boolean(firstSession),
@@ -43,24 +43,29 @@ export function EventSessionsPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-card border border-border bg-surface p-6 shadow-card">
-        <p className="text-sm text-muted-foreground">{eventQuery.data.venue}</p>
-        <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{eventQuery.data.title}</h1>
+            <p className="text-sm text-muted-foreground">{eventQuery.data.venue}</p>
+            <h1 className="mt-2 text-3xl font-bold text-foreground">{eventQuery.data.title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               총 {sessionsQuery.data?.content.length ?? 0}개 회차
             </p>
           </div>
+          {firstSession ? (
+            <Link to={`/events/${eventId}/sessions/${firstSession.sessionId}`} className="w-full md:w-auto">
+              <Button fullWidth>가장 빠른 회차 예매</Button>
+            </Link>
+          ) : null}
         </div>
       </section>
 
       <div className="grid gap-4">
         {sessionsQuery.data?.content.map((session) => {
           const status = getEventStatusPresentation(session.eventSessionStatus);
+
           return (
-            <Link
+            <article
               key={session.sessionId}
-              to={`/events/${eventId}/sessions/${session.sessionId}`}
               className="rounded-card border border-border bg-surface p-5 shadow-card transition hover:border-primary/20 hover:shadow-panel"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -77,14 +82,22 @@ export function EventSessionsPage() {
                     {formatDateTime(session.sessionCloseDate)}
                   </p>
                 </div>
-                <div className="text-left md:text-right">
+                <div className="w-full md:w-auto md:text-right">
                   <p className="text-sm text-muted-foreground">가격</p>
                   <p className="mt-1 text-lg font-semibold text-foreground">
                     {formatSessionPrice(session)}
                   </p>
+                  <div className="mt-4">
+                    <Link
+                      to={`/events/${eventId}/sessions/${session.sessionId}`}
+                      className="block w-full md:inline-block"
+                    >
+                      <Button fullWidth>예매하기</Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </Link>
+            </article>
           );
         })}
       </div>
