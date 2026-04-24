@@ -1,12 +1,12 @@
 import { Link, useParams } from "react-router-dom";
 import { useEventDetailQuery, useEventSessionsQuery } from "@/features/events/api/events";
 import { formatSessionPrice, getEventStatusPresentation } from "@/features/events/utils";
+import { formatDateTime } from "@/shared/lib/format";
+import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
 import { Button } from "@/shared/ui/button";
 import { StatusBadge } from "@/shared/ui/status-badge";
-import { formatDateTime } from "@/shared/lib/format";
-import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
 
 export function EventSessionsPage() {
   const params = useParams();
@@ -44,10 +44,14 @@ export function EventSessionsPage() {
     <div className="space-y-6">
       <section className="rounded-card border border-border bg-surface p-6 shadow-card">
         <p className="text-sm text-muted-foreground">{eventQuery.data.venue}</p>
-        <h1 className="mt-2 text-3xl font-bold">{eventQuery.data.title}</h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          날짜와 회차 단위로 상태를 확인하고, 판매 오픈/마감 시간은 회차 상세에서 다시 검증합니다.
-        </p>
+        <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{eventQuery.data.title}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              총 {sessionsQuery.data?.content.length ?? 0}개 회차
+            </p>
+          </div>
+        </div>
       </section>
 
       <div className="grid gap-4">
@@ -67,14 +71,14 @@ export function EventSessionsPage() {
                       좌석 {session.sessionSeatCount.toLocaleString()}석
                     </span>
                   </div>
-                  <h2 className="mt-3 text-xl font-semibold">{session.eventTitle}</h2>
+                  <h2 className="mt-3 text-xl font-semibold text-foreground">{session.eventTitle}</h2>
                   <p className="mt-2 text-sm text-muted-foreground">
                     시작 {formatDateTime(session.sessionOpenDate)} · 종료{" "}
                     {formatDateTime(session.sessionCloseDate)}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">가격대</p>
+                <div className="text-left md:text-right">
+                  <p className="text-sm text-muted-foreground">가격</p>
                   <p className="mt-1 text-lg font-semibold text-foreground">
                     {formatSessionPrice(session)}
                   </p>

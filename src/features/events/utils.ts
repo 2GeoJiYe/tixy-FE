@@ -1,13 +1,93 @@
 import { categoryOptions, locationOptions } from "@/features/events/constants";
-import type { EventCardModel, EventItem, EventSessionDetail, EventSessionItem } from "@/features/events/types";
+import type {
+  EventCardModel,
+  EventItem,
+  EventSessionDetail,
+  EventSessionItem,
+  EventSortValue,
+} from "@/features/events/types";
 import { formatCurrency, formatDateTime } from "@/shared/lib/format";
+
+const eventStatusPriority: Record<string, number> = {
+  OPEN: 0,
+  SCHEDULED: 1,
+  CLOSED: 2,
+};
+
+const eventSortValues: EventSortValue[] = ["recommended", "status", "openDate", "closingSoon"];
+
+function getTime(value: string) {
+  return new Date(value).getTime();
+}
+
+function isSameDay(left: number, right: number) {
+  const leftDate = new Date(left);
+  const rightDate = new Date(right);
+
+  return (
+    leftDate.getFullYear() === rightDate.getFullYear() &&
+    leftDate.getMonth() === rightDate.getMonth() &&
+    leftDate.getDate() === rightDate.getDate()
+  );
+}
+
+function compareStatus(left: EventItem, right: EventItem) {
+  const leftPriority = eventStatusPriority[normalizeEventStatus(left.eventStatus)] ?? Number.MAX_SAFE_INTEGER;
+  const rightPriority = eventStatusPriority[normalizeEventStatus(right.eventStatus)] ?? Number.MAX_SAFE_INTEGER;
+
+  if (leftPriority !== rightPriority) {
+    return leftPriority - rightPriority;
+  }
+
+  const openDiff = getTime(left.openDate) - getTime(right.openDate);
+  if (openDiff !== 0) {
+    return openDiff;
+  }
+
+  return getTime(left.endDate) - getTime(right.endDate);
+}
+
+export function normalizeEventSort(value: string | null | undefined): EventSortValue {
+  if (value && eventSortValues.includes(value as EventSortValue)) {
+    return value as EventSortValue;
+  }
+
+  return "recommended";
+}
 
 export function getLocationLabel(location: string) {
   return locationOptions.find((option) => option.value === location)?.label ?? location;
 }
 
+export function normalizeEventStatus(status: string) {
+  const value = status.trim();
+  const upper = value.toUpperCase();
+
+  if (upper === "OPEN") {
+    return "OPEN";
+  }
+
+  if (upper === "SCHEDULED") {
+    return "SCHEDULED";
+  }
+
+  if (upper === "CLOSED") {
+    return "CLOSED";
+  }
+
+  if (value.includes("종료") || value.includes("마감")) {
+    return "CLOSED";
+  }
+
+  if (value.includes("예정")) {
+    return "SCHEDULED";
+  }
+
+  return "OPEN";
+}
+
 export function getEventStatusPresentation(status: string) {
-  switch (status) {
+  switch (normalizeEventStatus(status)) {
     case "OPEN":
       return { label: "판매중", tone: "success" as const };
     case "SCHEDULED":
@@ -21,6 +101,7 @@ export function getEventStatusPresentation(status: string) {
 
 export function toEventCardModel(event: EventItem, tag?: string): EventCardModel {
   const status = getEventStatusPresentation(event.eventStatus);
+
   return {
     ...event,
     posterUrl: null,
@@ -31,17 +112,16 @@ export function toEventCardModel(event: EventItem, tag?: string): EventCardModel
   };
 }
 
-export function sortEvents(items: EventItem[], sort: string) {
+export function sortEvents(items: EventItem[], sort: EventSortValue) {
   const next = [...items];
+
   switch (sort) {
+    case "status":
+      return next.sort(compareStatus);
     case "openDate":
-      return next.sort(
-        (left, right) => new Date(left.openDate).getTime() - new Date(right.openDate).getTime(),
-      );
+      return next.sort((left, right) => getTime(left.openDate) - getTime(right.openDate));
     case "closingSoon":
-      return next.sort(
-        (left, right) => new Date(left.endDate).getTime() - new Date(right.endDate).getTime(),
-      );
+      return next.sort((left, right) => getTime(left.endDate) - getTime(right.endDate));
     default:
       return next;
   }
@@ -49,15 +129,22 @@ export function sortEvents(items: EventItem[], sort: string) {
 
 export function getFeaturedCollections(events: EventItem[]) {
   const now = Date.now();
+  const visibleEvents = events.filter((event) => normalizeEventStatus(event.eventStatus) !== "CLOSED");
+  const onSale = visibleEvents
+    .filter((event) => normalizeEventStatus(event.eventStatus) === "OPEN")
+    .sort((left, right) => getTime(right.openDate) - getTime(left.openDate));
+
   return {
-    openingToday: events.filter((event) => {
-      const open = new Date(event.openDate).getTime();
-      return Math.abs(open - now) < 86_400_000;
-    }),
-    closingSoon: [...events]
-      .filter((event) => new Date(event.endDate).getTime() >= now)
-      .sort((left, right) => new Date(left.endDate).getTime() - new Date(right.endDate).getTime())
-      .slice(0, 4),
+    onSale,
+    openingToday: visibleEvents
+      .filter((event) => isSameDay(getTime(event.openDate), now))
+      .sort((left, right) => getTime(left.openDate) - getTime(right.openDate)),
+    closingSoon: onSale
+      .filter((event) => getTime(event.endDate) >= now)
+      .sort((left, right) => getTime(left.endDate) - getTime(right.endDate)),
+    upcoming: visibleEvents
+      .filter((event) => normalizeEventStatus(event.eventStatus) === "SCHEDULED")
+      .sort((left, right) => getTime(left.openDate) - getTime(right.openDate)),
   };
 }
 
@@ -65,6 +152,7 @@ export function formatSessionPrice(session: EventSessionItem) {
   if (session.minPrice === session.maxPrice) {
     return formatCurrency(session.minPrice);
   }
+
   return `${formatCurrency(session.minPrice)} ~ ${formatCurrency(session.maxPrice)}`;
 }
 
@@ -76,12 +164,12 @@ export function formatTicketTypePriceMap(detail: EventSessionDetail) {
 
 export function getSessionSaleStatus(detail: EventSessionDetail) {
   const now = Date.now();
-  const open = new Date(detail.saleOpenDate).getTime();
-  const close = new Date(detail.saleCloseDate).getTime();
+  const open = getTime(detail.saleOpenDate);
+  const close = getTime(detail.saleCloseDate);
 
   if (now < open) {
     return {
-      label: `판매 오픈 전 · ${formatDateTime(detail.saleOpenDate)}`,
+      label: `판매 오픈 · ${formatDateTime(detail.saleOpenDate)}`,
       tone: "warning" as const,
     };
   }

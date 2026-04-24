@@ -20,26 +20,21 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        "/api/support": {
+        "/tixy/api": {
+          target: mainProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/tixypt/api": {
           target: supportProxyTarget,
           changeOrigin: true,
           secure: false,
         },
-        "/api/admin/support": {
-          target: supportProxyTarget,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/ws/support": {
+        "/tixypt/ws": {
           target: supportProxyTarget,
           changeOrigin: true,
           secure: false,
           ws: true,
-        },
-        "/api": {
-          target: mainProxyTarget,
-          changeOrigin: true,
-          secure: false,
         },
       },
     },

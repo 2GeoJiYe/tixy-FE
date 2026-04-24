@@ -6,16 +6,17 @@ import { FilterPanel } from "@/features/events/components/filter-panel";
 import { SearchBar } from "@/features/events/components/search-bar";
 import { SearchResultHeader } from "@/features/events/components/search-result-header";
 import { categoryOptions, eventSortOptions, locationOptions } from "@/features/events/constants";
-import type { EventSearchFilters } from "@/features/events/types";
-import { sortEvents, toEventCardModel } from "@/features/events/utils";
+import type { EventSearchFilters, EventSortValue } from "@/features/events/types";
+import { normalizeEventSort, sortEvents, toEventCardModel } from "@/features/events/utils";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
+import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { EventCard } from "@/shared/ui/event-card";
-import { Button } from "@/shared/ui/button";
 
 function readFilters(searchParams: URLSearchParams): EventSearchFilters {
   const readArray = (key: string) => searchParams.getAll(key);
+
   return {
     keyword: searchParams.get("q") ?? undefined,
     reservePossible:
@@ -33,8 +34,9 @@ function readFilters(searchParams: URLSearchParams): EventSearchFilters {
   };
 }
 
-function writeFilters(filters: EventSearchFilters, sort: string) {
+function writeFilters(filters: EventSearchFilters, sort: EventSortValue) {
   const params = new URLSearchParams();
+
   if (filters.keyword) params.set("q", filters.keyword);
   if (filters.reservePossible != null) params.set("reservePossible", String(filters.reservePossible));
   filters.area?.forEach((item) => params.append("area", item));
@@ -44,16 +46,17 @@ function writeFilters(filters: EventSearchFilters, sort: string) {
   if (filters.startPrice != null) params.set("startPrice", String(filters.startPrice));
   if (filters.endPrice != null) params.set("endPrice", String(filters.endPrice));
   if (sort !== "recommended") params.set("sort", sort);
+
   return params;
 }
 
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const sort = searchParams.get("sort") ?? "recommended";
+  const sort = normalizeEventSort(searchParams.get("sort"));
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
   const [draftFilters, setDraftFilters] = useState(filters);
-  const [draftSort, setDraftSort] = useState(sort);
+  const [draftSort, setDraftSort] = useState<EventSortValue>(sort);
   const query = useEventsQuery(filters, true);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function SearchPage() {
 
     if (filters.keyword) {
       result.push({
-        label: `검색어: ${filters.keyword}`,
+        label: `검색어 ${filters.keyword}`,
         onRemove: () => {
           const next = { ...filters, keyword: undefined };
           setSearchParams(writeFilters(next, sort));
@@ -81,8 +84,7 @@ export function SearchPage() {
 
     filters.category?.forEach((category) => {
       result.push({
-        label:
-          categoryOptions.find((option) => option.value === category)?.label ?? category,
+        label: categoryOptions.find((option) => option.value === category)?.label ?? category,
         onRemove: () => {
           const next = {
             ...filters,
@@ -107,11 +109,17 @@ export function SearchPage() {
     });
 
     return result;
-  }, [filters, searchParams, setSearchParams, sort]);
+  }, [filters, setSearchParams, sort]);
 
   const applyFilters = () => {
     setSearchParams(writeFilters(draftFilters, draftSort));
     setFilterDrawerOpen(false);
+  };
+
+  const clearFilters = () => {
+    setDraftFilters({});
+    setDraftSort("recommended");
+    setSearchParams(writeFilters({}, "recommended"));
   };
 
   const unauthorized = query.error && "status" in query.error && query.error.status === 401;
@@ -128,13 +136,13 @@ export function SearchPage() {
       />
 
       <SearchResultHeader
-        title={filters.keyword ? `“${filters.keyword}” 검색` : "전체 공연"}
+        title={filters.keyword ? `"${filters.keyword}" 검색` : "전체 공연"}
         resultCount={sortedItems.length}
         sortLabel={eventSortOptions.find((option) => option.value === sort)?.label ?? "추천순"}
       />
 
       <div className="flex items-center justify-between gap-3 xl:hidden">
-        <FilterChipGroup items={chips} onClear={() => setSearchParams(new URLSearchParams())} />
+        <FilterChipGroup items={chips} onClear={clearFilters} />
         <Button variant="secondary" onClick={() => setFilterDrawerOpen(true)}>
           필터
         </Button>
@@ -157,7 +165,7 @@ export function SearchPage() {
 
         <section className="space-y-4">
           <div className="hidden xl:block">
-            <FilterChipGroup items={chips} onClear={() => setSearchParams(new URLSearchParams())} />
+            <FilterChipGroup items={chips} onClear={clearFilters} />
           </div>
 
           {filterDrawerOpen ? (
@@ -192,13 +200,16 @@ export function SearchPage() {
           ) : null}
 
           {query.isError && !unauthorized ? (
-            <AppErrorState description="공연 목록을 가져오지 못했습니다." onRetry={() => query.refetch()} />
+            <AppErrorState
+              description="공연 목록을 불러오지 못했습니다."
+              onRetry={() => query.refetch()}
+            />
           ) : null}
 
           {!query.isLoading && !query.isError && sortedItems.length === 0 ? (
             <EmptyState
               title="조건에 맞는 공연이 없습니다."
-              description="검색어 또는 필터를 조금만 넓혀 보세요. 총 개수 API가 없어 현재 응답 범위 안에서만 결과를 보여주고 있습니다."
+              description="다른 검색어나 필터로 다시 찾아보세요."
             />
           ) : null}
 

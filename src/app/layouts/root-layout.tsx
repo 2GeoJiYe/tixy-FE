@@ -27,56 +27,35 @@ export function RootLayout() {
     },
   });
 
+  const navClassName = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      "rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
+      isActive && "bg-muted text-foreground",
+    );
+
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border/80 bg-white/80 backdrop-blur">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-30 border-b border-border/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-container items-center justify-between gap-4 px-4 py-4 md:px-6">
           <Link to="/" className="flex items-center gap-3">
             <span className="rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
               Tixy
             </span>
-            <span className="hidden text-sm font-medium text-muted-foreground md:block">
-              운영형 통합 티켓 앱
-            </span>
           </Link>
+
           <nav className="hidden items-center gap-2 md:flex">
             {navigationItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    "rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    isActive && "bg-muted text-foreground",
-                  )
-                }
-              >
+              <NavLink key={item.to} to={item.to} className={navClassName}>
                 {item.label}
               </NavLink>
             ))}
             {user?.role === "ROLE_ADMIN" || user?.role === "ROLE_SUPER_ADMIN" ? (
-              <NavLink
-                to="/admin/support/queue"
-                className={({ isActive }) =>
-                  cn(
-                    "rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    isActive && "bg-muted text-foreground",
-                  )
-                }
-              >
+              <NavLink to="/admin/support/queue" className={navClassName}>
                 운영 콘솔
               </NavLink>
             ) : null}
             {user?.role === "ROLE_SUPER_ADMIN" ? (
-              <NavLink
-                to="/admin/dashboard/sales"
-                className={({ isActive }) =>
-                  cn(
-                    "rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    isActive && "bg-muted text-foreground",
-                  )
-                }
-              >
+              <NavLink to="/admin/dashboard/sales" className={navClassName}>
                 판매 대시보드
               </NavLink>
             ) : null}
@@ -121,9 +100,9 @@ export function RootLayout() {
       </main>
 
       <footer className="border-t border-border bg-white/80">
-        <div className="mx-auto flex max-w-container flex-col gap-2 px-4 py-5 text-sm text-muted-foreground md:px-6 md:flex-row md:items-center md:justify-between">
-          <p>Tixy Frontend Draft</p>
-          <p>same-origin reverse proxy, access-token auth, support WebSocket</p>
+        <div className="mx-auto flex max-w-container items-center justify-between gap-3 px-4 py-5 text-sm text-muted-foreground md:px-6">
+          <p>Tixy</p>
+          <p>Ticketing & Support</p>
         </div>
       </footer>
 

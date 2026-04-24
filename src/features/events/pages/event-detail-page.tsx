@@ -1,14 +1,14 @@
-import { Link, useParams } from "react-router-dom";
 import { useMemo } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useEventDetailQuery } from "@/features/events/api/events";
 import { toEventCardModel } from "@/features/events/utils";
+import { formatDateRange } from "@/shared/lib/format";
+import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
 import { Button } from "@/shared/ui/button";
 import { PosterImage } from "@/shared/ui/poster-image";
 import { StatusBadge } from "@/shared/ui/status-badge";
-import { formatDateRange } from "@/shared/lib/format";
-import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
 
 export function EventDetailPage() {
   const params = useParams();
@@ -20,7 +20,7 @@ export function EventDetailPage() {
   useStickyPageAction(
     event ? (
       <Link to={`/events/${event.id}/sessions`} className="block">
-        <Button fullWidth>회차 선택하기</Button>
+        <Button fullWidth>회차 선택</Button>
       </Link>
     ) : null,
     Boolean(event),
@@ -35,35 +35,54 @@ export function EventDetailPage() {
   }
 
   if (query.isError || !event) {
-    return <AppErrorState description="공연 상세를 불러오지 못했습니다." onRetry={() => query.refetch()} />;
+    return <AppErrorState description="공연 정보를 불러오지 못했습니다." onRetry={() => query.refetch()} />;
   }
+
+  const summaryItems = [
+    { label: "공연장", value: event.venue },
+    { label: "지역", value: event.locationLabel },
+    { label: "기간", value: formatDateRange(event.openDate, event.endDate) },
+    { label: "상태", value: event.statusLabel },
+  ];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <PosterImage className="max-w-sm" title={event.title} imageUrl={event.posterUrl} />
-      <section className="rounded-card border border-border bg-surface p-6 shadow-card">
-        <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge label={event.statusLabel} tone={event.statusTone} />
-          <span className="text-sm text-muted-foreground">{event.locationLabel}</span>
+      <div className="xl:sticky xl:top-24">
+        <PosterImage className="max-w-sm" title={event.title} imageUrl={event.posterUrl} />
+      </div>
+
+      <section className="rounded-card border border-border bg-surface shadow-card">
+        <div className="border-b border-border px-6 py-6 md:px-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge label={event.statusLabel} tone={event.statusTone} />
+            <span className="text-sm text-muted-foreground">{event.locationLabel}</span>
+          </div>
+          <h1 className="mt-4 text-3xl font-bold text-foreground md:text-[2rem]">{event.title}</h1>
         </div>
-        <h1 className="mt-4 text-3xl font-bold text-foreground">{event.title}</h1>
-        <div className="mt-5 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-          <p>공연장: {event.venue}</p>
-          <p>기간: {formatDateRange(event.openDate, event.endDate)}</p>
+
+        <div className="grid gap-3 border-b border-border px-6 py-6 md:grid-cols-2 md:px-8 xl:grid-cols-4">
+          {summaryItems.map((item) => (
+            <div key={item.label} className="rounded-card border border-border bg-panel px-4 py-4">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-foreground">{item.value}</p>
+            </div>
+          ))}
         </div>
-        <div className="mt-6 rounded-card bg-muted px-4 py-4 text-sm leading-7 text-muted-foreground">
-          {event.description || "소개 텍스트가 아직 제공되지 않았습니다."}
+
+        <div className="px-6 py-6 md:px-8">
+          <h2 className="text-base font-semibold text-foreground">공연 소개</h2>
+          <div className="mt-4 rounded-card bg-panel px-5 py-5 text-sm leading-7 text-muted-foreground">
+            <p className="whitespace-pre-line">
+              {event.description || "등록된 소개가 없습니다."}
+            </p>
+          </div>
         </div>
-        <div className="mt-6 rounded-card border border-border bg-panel p-4">
-          <h2 className="text-sm font-semibold text-foreground">안내</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            포스터, 상세 주소, 회차별 대표 가격은 현재 백엔드 계약이 제한적이라 placeholder 혹은
-            회차 상세 기반 정보로 연결됩니다.
-          </p>
-        </div>
-        <div className="mt-6 hidden md:block">
+
+        <div className="hidden border-t border-border px-6 py-6 md:block md:px-8">
           <Link to={`/events/${event.id}/sessions`}>
-            <Button>회차 선택하기</Button>
+            <Button>회차 선택</Button>
           </Link>
         </div>
       </section>

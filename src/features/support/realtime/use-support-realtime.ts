@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import { useAuth } from "@/app/providers/auth-provider";
+import { supportStompPaths } from "@/features/support/config";
 import { env } from "@/shared/config/env";
 import type {
   MessageEvent,
@@ -81,26 +82,26 @@ export function useSupportRealtime({
         setStatus("connected");
         if (roomId) {
           subscriptions.push(
-            client.subscribe(`/sub/support/v1/rooms/${roomId}`, (message) => {
+            client.subscribe(supportStompPaths.room(roomId), (message) => {
               callbacksRef.current.onMessage?.(parseMessage<MessageEvent>(message));
             }),
           );
           subscriptions.push(
-            client.subscribe(`/sub/support/v1/rooms/${roomId}/read`, (message) => {
+            client.subscribe(supportStompPaths.roomRead(roomId), (message) => {
               callbacksRef.current.onReadReceipt?.(parseMessage<ReadReceiptEvent>(message));
             }),
           );
         }
 
         subscriptions.push(
-          client.subscribe(`/user/queue/support/v1/read`, (message) => {
+          client.subscribe(supportStompPaths.userRead, (message) => {
             callbacksRef.current.onUnreadSync?.(parseMessage<UnreadCountSyncEvent>(message));
           }),
         );
 
         if (subscribeQueue) {
           subscriptions.push(
-            client.subscribe(`/sub/support/v1/queue`, (message) => {
+            client.subscribe(supportStompPaths.queue, (message) => {
               callbacksRef.current.onQueueEvent?.(parseMessage<RoomQueueEvent>(message));
             }),
           );
@@ -134,7 +135,7 @@ export function useSupportRealtime({
 
     try {
       client.publish({
-        destination: `/pub/support/v1/rooms/${targetRoomId}/messages`,
+        destination: supportStompPaths.publishMessage(targetRoomId),
         body: JSON.stringify({ content }),
       });
       return true;
@@ -152,7 +153,7 @@ export function useSupportRealtime({
 
     try {
       client.publish({
-        destination: `/pub/support/v1/rooms/${targetRoomId}/read`,
+        destination: supportStompPaths.publishRead(targetRoomId),
         body: JSON.stringify({ lastReadMessageId }),
       });
       return true;

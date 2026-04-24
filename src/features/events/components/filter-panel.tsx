@@ -1,13 +1,14 @@
 import { categoryOptions, eventSortOptions, locationOptions } from "@/features/events/constants";
-import type { EventSearchFilters } from "@/features/events/types";
+import type { EventSearchFilters, EventSortValue } from "@/features/events/types";
+import { normalizeEventSort } from "@/features/events/utils";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
 interface FilterPanelProps {
   filters: EventSearchFilters;
-  sort: string;
+  sort: EventSortValue;
   onChangeFilters: (next: EventSearchFilters) => void;
-  onChangeSort: (value: string) => void;
+  onChangeSort: (value: EventSortValue) => void;
   onApply?: () => void;
   compact?: boolean;
 }
@@ -19,6 +20,7 @@ function toggleArrayItem(items: string[] | undefined, value: string) {
   } else {
     current.add(value);
   }
+
   return [...current];
 }
 
@@ -130,7 +132,7 @@ export function FilterPanel({
             <Input
               type="number"
               min={0}
-              placeholder="최저"
+              placeholder="최소"
               value={filters.startPrice ?? ""}
               onChange={(event) =>
                 onChangeFilters({
@@ -142,7 +144,7 @@ export function FilterPanel({
             <Input
               type="number"
               min={0}
-              placeholder="최고"
+              placeholder="최대"
               value={filters.endPrice ?? ""}
               onChange={(event) =>
                 onChangeFilters({
@@ -159,7 +161,7 @@ export function FilterPanel({
           <select
             className="h-11 w-full rounded-input border border-border bg-surface px-3 text-sm"
             value={sort}
-            onChange={(event) => onChangeSort(event.target.value)}
+            onChange={(event) => onChangeSort(normalizeEventSort(event.target.value))}
           >
             {eventSortOptions.map((option) => (
               <option key={option.value} value={option.value}>

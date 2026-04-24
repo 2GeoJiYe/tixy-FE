@@ -11,21 +11,21 @@ export function SupportRoomsPage() {
   }
 
   if (roomsQuery.isError) {
-    return <AppErrorState description="문의방 목록을 불러오지 못했습니다." onRetry={() => roomsQuery.refetch()} />;
+    return <AppErrorState description="문의 목록을 불러오지 못했습니다." onRetry={() => roomsQuery.refetch()} />;
   }
 
   if (!roomsQuery.data?.items.length) {
     return (
       <EmptyState
-        title="열린 문의방이 없습니다."
-        description="`/support` 화면에서 새 문의방을 시작하거나 기존 문의 흐름을 재개할 수 있습니다."
+        title="문의 내역이 없습니다."
+        description="새 문의를 시작해 주세요."
       />
     );
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold">내 문의방 목록</h1>
+      <h1 className="text-3xl font-bold text-foreground">문의 목록</h1>
       <div className="grid gap-4">
         {roomsQuery.data.items.map((room) => (
           <RoomListCard key={room.roomId} room={room} href={`/support/rooms/${room.roomId}`} />

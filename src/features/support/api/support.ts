@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/app/providers/auth-provider";
 import { supportApiClient } from "@/shared/api/clients";
+import { supportApiPaths } from "@/features/support/config";
 import type { QueryValue } from "@/shared/api/types";
 import type {
   CreateRoomResponse,
@@ -33,7 +34,7 @@ export function useMyRoomsQuery(params?: SupportListParams) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: supportKeys.rooms("me", params),
-    queryFn: () => getList(accessToken, "/support/v1/rooms/me", params),
+    queryFn: () => getList(accessToken, supportApiPaths.myRooms, params),
     refetchInterval: 20_000,
   });
 }
@@ -42,7 +43,7 @@ export function useAdminQueueQuery(params?: SupportListParams) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: supportKeys.rooms("queue", params),
-    queryFn: () => getList(accessToken, "/admin/support/v1/queue", params),
+    queryFn: () => getList(accessToken, supportApiPaths.adminQueue, params),
     refetchInterval: 20_000,
   });
 }
@@ -51,7 +52,7 @@ export function useAdminClosedRoomsQuery(params?: SupportListParams) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: supportKeys.rooms("closed", params),
-    queryFn: () => getList(accessToken, "/admin/support/v1/rooms/closed", params),
+    queryFn: () => getList(accessToken, supportApiPaths.adminClosedRooms, params),
     refetchInterval: 20_000,
   });
 }
@@ -60,7 +61,7 @@ export function useAdminStaleRoomsQuery(params?: SupportListParams) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: supportKeys.rooms("stale", params),
-    queryFn: () => getList(accessToken, "/admin/support/v1/rooms/stale", params),
+    queryFn: () => getList(accessToken, supportApiPaths.adminStaleRooms, params),
     refetchInterval: 20_000,
   });
 }
@@ -70,7 +71,7 @@ export function useRoomDetailQuery(roomId: number) {
   return useQuery({
     queryKey: supportKeys.room(roomId),
     queryFn: () =>
-      supportApiClient.request<RoomDetail>(`/support/v1/rooms/${roomId}`, {
+      supportApiClient.request<RoomDetail>(supportApiPaths.room(roomId), {
         method: "GET",
         token: accessToken,
       }),
@@ -84,7 +85,7 @@ export function useRoomMessagesQuery(roomId: number) {
     queryKey: supportKeys.messages(roomId),
     initialPageParam: undefined as number | undefined,
     queryFn: ({ pageParam }) =>
-      supportApiClient.request<MessageCursorResponse>(`/support/v1/rooms/${roomId}/messages`, {
+      supportApiClient.request<MessageCursorResponse>(supportApiPaths.roomMessages(roomId), {
         method: "GET",
         token: accessToken,
         query: { beforeMessageId: pageParam, size: 30 },
@@ -99,7 +100,7 @@ export function useCreateRoomMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      supportApiClient.request<CreateRoomResponse>("/support/v1/rooms", {
+      supportApiClient.request<CreateRoomResponse>(supportApiPaths.rooms, {
         method: "POST",
         token: accessToken,
       }),
@@ -114,13 +115,10 @@ export function useRequestCounselorMutation(roomId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      supportApiClient.request<RequestCounselorResponse>(
-        `/support/v1/rooms/${roomId}/counselor-request`,
-        {
-          method: "POST",
-          token: accessToken,
-        },
-      ),
+      supportApiClient.request<RequestCounselorResponse>(supportApiPaths.counselorRequest(roomId), {
+        method: "POST",
+        token: accessToken,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: supportKeys.room(roomId) });
       queryClient.invalidateQueries({ queryKey: ["support"] });
@@ -147,14 +145,14 @@ function createAdminAction(pathBuilder: (roomId: number) => string) {
 }
 
 export const useClaimRoomMutation = createAdminAction(
-  (roomId) => `/admin/support/v1/rooms/${roomId}/claim`,
+  (roomId) => supportApiPaths.adminClaim(roomId),
 );
 export const useReleaseRoomMutation = createAdminAction(
-  (roomId) => `/admin/support/v1/rooms/${roomId}/release`,
+  (roomId) => supportApiPaths.adminRelease(roomId),
 );
 export const useSolveRoomMutation = createAdminAction(
-  (roomId) => `/admin/support/v1/rooms/${roomId}/solve`,
+  (roomId) => supportApiPaths.adminSolve(roomId),
 );
 export const useCloseRoomMutation = createAdminAction(
-  (roomId) => `/admin/support/v1/rooms/${roomId}/close`,
+  (roomId) => supportApiPaths.adminClose(roomId),
 );

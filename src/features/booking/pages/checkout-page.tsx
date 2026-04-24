@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCreateOrderMutation } from "@/features/booking/api/booking";
 import { readBookingDraft, writeBookingDraft } from "@/features/booking/store/booking-draft";
 import { getErrorMessage } from "@/shared/api/error";
+import { formatCountdown, formatDateTime } from "@/shared/lib/format";
 import { useCountdown } from "@/shared/hooks/use-countdown";
 import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
-import { AppErrorState } from "@/shared/ui/app-error-state";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { formatCountdown } from "@/shared/lib/format";
 import { useToast } from "@/shared/ui/toast";
 
 export function CheckoutPage() {
@@ -58,7 +57,7 @@ export function CheckoutPage() {
               };
               writeBookingDraft(nextDraft);
               setDraft(nextDraft);
-              showToast("주문 생성이 완료되었습니다. 입금 대기 화면으로 이동합니다.", "success");
+              showToast("주문이 생성되었습니다.", "success");
               navigate("/checkout/waiting-payment");
             },
             onError: (error) => {
@@ -81,11 +80,11 @@ export function CheckoutPage() {
   if (!draft?.hold) {
     return (
       <EmptyState
-        title="먼저 좌석을 홀드해 주세요."
-        description="체크아웃은 좌석 홀드 성공 이후에만 진행할 수 있습니다."
+        title="선택한 좌석이 없습니다."
+        description="좌석을 고른 뒤 계속 진행할 수 있습니다."
         action={
           <Link to="/">
-            <Button>홈으로 돌아가기</Button>
+            <Button>공연 보기</Button>
           </Link>
         }
       />
@@ -96,43 +95,74 @@ export function CheckoutPage() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section className="space-y-5">
         <div className="rounded-card border border-border bg-surface p-6 shadow-card">
-          <h1 className="text-3xl font-bold">체크아웃</h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            현재 계약상 주문 생성 전에는 좌석 홀드 상태만 확인할 수 있고, 결제 완료 여부는 웹훅
-            처리 이후에만 반영됩니다.
-          </p>
-        </div>
-
-        <div className="rounded-card border border-border bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-semibold">홀드 좌석</h2>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {draft.hold.seatSectionName} · {draft.hold.seatLabels.join(", ")}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            남은 홀드 시간 {formatCountdown(countdown.remaining)}
-          </p>
-        </div>
-
-        <div className="rounded-card border border-border bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-semibold">운영형 제약 안내</h2>
-          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-            <p>정확한 결제 총액은 주문 생성 응답에서만 확정됩니다.</p>
-            <p>회원 지갑 주소 보유 여부를 사전 조회하는 API가 없어, 주문 시점 오류로만 감지됩니다.</p>
-            <p>결제 만료 시각/상태 조회 API가 없어 대기 화면은 안내형으로만 제공합니다.</p>
+          <p className="text-sm text-muted-foreground">{draft.hold.eventTitle}</p>
+          <h1 className="mt-3 text-3xl font-bold text-foreground">주문 확인</h1>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="rounded-card border border-border bg-panel px-4 py-4">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                선택 좌석
+              </p>
+              <p className="mt-2 text-sm font-semibold text-foreground">
+                {draft.hold.seatSectionName} · {draft.hold.seatLabels.join(", ")}
+              </p>
+            </div>
+            <div className="rounded-card border border-border bg-panel px-4 py-4">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                남은 시간
+              </p>
+              <p className="mt-2 text-sm font-semibold text-foreground">
+                {formatCountdown(countdown.remaining)}
+              </p>
+            </div>
           </div>
         </div>
 
+        <div className="rounded-card border border-border bg-surface p-6 shadow-card">
+          <h2 className="text-lg font-semibold text-foreground">예매 정보</h2>
+          <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">회차 시작</dt>
+              <dd className="mt-1 font-medium text-foreground">
+                {formatDateTime(draft.hold.sessionOpenDatetime)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">회차 종료</dt>
+              <dd className="mt-1 font-medium text-foreground">
+                {formatDateTime(draft.hold.sessionEndDatetime)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">좌석 수</dt>
+              <dd className="mt-1 font-medium text-foreground">
+                {draft.hold.seatLabels.length}매
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">결제 금액</dt>
+              <dd className="mt-1 font-medium text-foreground">주문 생성 후 확인</dd>
+            </div>
+          </dl>
+        </div>
+
         {walletBlocked ? (
-          <AppErrorState
-            title="지갑 주소 등록 API가 필요합니다."
-            description="현재 백엔드에서는 주문 생성 시 지갑 주소가 없으면 차단하지만, 프론트에서 이를 사전에 조회하거나 등록할 API는 제공하지 않습니다. 운영에서는 회원 정보 API 계약이 추가되어야 합니다."
-          />
+          <div className="rounded-card border border-danger/20 bg-danger/5 p-5 text-sm">
+            <h2 className="text-base font-semibold text-foreground">주문을 진행할 수 없습니다.</h2>
+            <p className="mt-2 leading-6 text-muted-foreground">
+              회원 정보 확인이 필요합니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.
+            </p>
+            <div className="mt-4">
+              <Link to="/support">
+                <Button variant="secondary">문의하기</Button>
+              </Link>
+            </div>
+          </div>
         ) : null}
       </section>
 
       <aside className="space-y-4">
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
-          <h3 className="text-sm font-semibold">진행 상태</h3>
+          <h3 className="text-sm font-semibold text-foreground">진행 상태</h3>
           <div className="mt-4 space-y-3 text-sm text-muted-foreground">
             <p>1. 좌석 선택 완료</p>
             <p>2. 좌석 홀드 완료</p>

@@ -8,15 +8,15 @@ import { readBookingDraft, writeBookingDraft } from "@/features/booking/store/bo
 import { useEventSessionDetailQuery } from "@/features/events/api/events";
 import { getErrorMessage } from "@/shared/api/error";
 import { env } from "@/shared/config/env";
+import { formatCountdown, formatDateTime, formatCurrency } from "@/shared/lib/format";
 import { useCountdown } from "@/shared/hooks/use-countdown";
 import { useStickyPageAction } from "@/shared/hooks/use-sticky-page-action";
-import { Button } from "@/shared/ui/button";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
+import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { useToast } from "@/shared/ui/toast";
-import { formatCountdown, formatDateTime } from "@/shared/lib/format";
 
 export function SeatSelectionPage() {
   const params = useParams();
@@ -52,7 +52,7 @@ export function SeatSelectionPage() {
         order: undefined,
       });
       setDraft(readBookingDraft());
-      showToast("좌석 홀드 시간이 만료되었습니다. 다시 선택해 주세요.", "warning");
+      showToast("좌석 홀드 시간이 만료되었습니다.", "warning");
     }
   }, [countdown.expired, draft, showToast]);
 
@@ -86,6 +86,11 @@ export function SeatSelectionPage() {
           ])
         : [],
     [activeSection],
+  );
+  const priceEntries = useMemo(
+    () =>
+      Object.entries(sessionQuery.data?.ticketTypePrice ?? {}).sort((left, right) => left[0].localeCompare(right[0])),
+    [sessionQuery.data?.ticketTypePrice],
   );
 
   const holdAction = (
@@ -127,7 +132,7 @@ export function SeatSelectionPage() {
               };
               writeBookingDraft(nextDraft);
               setDraft(nextDraft);
-              showToast("좌석 홀드가 완료되었습니다. 주문 생성 단계로 이동합니다.", "success");
+              showToast("좌석이 선택되었습니다.", "success");
               navigate("/checkout");
             },
             onError: (error) => {
@@ -137,7 +142,7 @@ export function SeatSelectionPage() {
         );
       }}
     >
-      {holdMutation.isPending ? "홀드 처리 중..." : "좌석 홀드"}
+      {holdMutation.isPending ? "좌석 홀드 중..." : "좌석 홀드"}
     </Button>
   );
 
@@ -154,21 +159,26 @@ export function SeatSelectionPage() {
   if (unauthorized) {
     return (
       <AuthRequiredNotice
-        title="좌석 조회는 현재 로그인 후 가능합니다."
-        description="Public-first 라우트는 준비했지만 실제 좌석 조회 API는 인증이 필요합니다. 로그인 후 같은 회차 화면으로 복귀할 수 있습니다."
+        title="로그인 후 좌석을 선택할 수 있습니다."
+        description="로그인하면 같은 화면으로 돌아옵니다."
       />
     );
   }
 
   if (sessionQuery.isError || seatsQuery.isError || !sessionQuery.data) {
-    return <AppErrorState description="좌석 선택 정보를 가져오지 못했습니다." onRetry={() => seatsQuery.refetch()} />;
+    return <AppErrorState description="좌석 정보를 불러오지 못했습니다." onRetry={() => seatsQuery.refetch()} />;
   }
 
   if (!groupedSections.length) {
     return (
       <EmptyState
-        title="현재 선택 가능한 좌석 데이터가 없습니다."
-        description="실제 운영 API는 섹션별 seat id 집합만 제공합니다. 좌석 공급이 준비되지 않았거나 판매 상태가 변경된 경우 비어 있을 수 있습니다."
+        title="선택 가능한 좌석이 없습니다."
+        description="다른 회차를 확인해 주세요."
+        action={
+          <Link to={`/events/${eventId}/sessions`}>
+            <Button variant="secondary">회차 다시 보기</Button>
+          </Link>
+        }
       />
     );
   }
@@ -180,7 +190,7 @@ export function SeatSelectionPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm text-muted-foreground">{sessionQuery.data.eventTitle}</p>
-              <h1 className="mt-2 text-2xl font-bold">좌석 선택</h1>
+              <h1 className="mt-2 text-2xl font-bold text-foreground">좌석 선택</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 시작 {formatDateTime(sessionQuery.data.sessionOpenDate)} · 종료{" "}
                 {formatDateTime(sessionQuery.data.sessionCloseDate)}
@@ -189,8 +199,8 @@ export function SeatSelectionPage() {
             <StatusBadge
               label={
                 draft?.hold && !countdown.expired
-                  ? `홀드 남은 시간 ${formatCountdown(countdown.remaining)}`
-                  : "홀드 시간 5분"
+                  ? `남은 시간 ${formatCountdown(countdown.remaining)}`
+                  : "홀드 5분"
               }
               tone={draft?.hold && !countdown.expired ? "warning" : "muted"}
             />
@@ -199,52 +209,52 @@ export function SeatSelectionPage() {
 
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">운영 모드 좌석 정보</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                실 API는 섹션 id와 seat id 목록만 제공하므로, production path에서는 그 범위 안에서만
-                선택 UI를 구성합니다.
-              </p>
-            </div>
+            <h2 className="text-lg font-semibold text-foreground">구역 선택</h2>
             {env.enableMockSeatMap ? (
               <Button variant="secondary" onClick={() => setDemoMode((current) => !current)}>
-                {demoMode ? "운영 모드만 보기" : "데모 시트맵 보기"}
+                {demoMode ? "좌석 목록" : "도면 보기"}
               </Button>
             ) : null}
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {groupedSections.map((section) => (
-              <button
-                key={section.sectionId}
-                type="button"
-                onClick={() => {
-                  setSelectedSectionId(section.sectionId);
-                  setSelectedSeatIds([]);
-                }}
-                className={`rounded-card border p-4 text-left transition ${
-                  selectedSectionId === section.sectionId
-                    ? "border-primary bg-primary/5"
-                    : "border-border bg-panel"
-                }`}
-              >
-                <p className="text-sm font-semibold text-foreground">{section.label}</p>
-                <p className="mt-1 text-sm text-muted-foreground">선택 가능 {section.count}석</p>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  가격/구역명 상세 매핑 API는 아직 없어 section id 기준으로 노출합니다.
-                </p>
-              </button>
-            ))}
+            {groupedSections.map((section) => {
+              const selected = selectedSectionId === section.sectionId;
+
+              return (
+                <button
+                  key={section.sectionId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSectionId(section.sectionId);
+                    setSelectedSeatIds([]);
+                  }}
+                  className={`rounded-card border p-4 text-left transition ${
+                    selected ? "border-primary bg-primary/5 shadow-card" : "border-border bg-panel"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">{section.label}</p>
+                    {selected ? <StatusBadge label="선택 중" /> : null}
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    선택 가능 {section.count.toLocaleString()}석
+                  </p>
+                </button>
+              );
+            })}
           </div>
 
           {activeSection ? (
             <div className="mt-6">
-              <h3 className="text-sm font-semibold text-foreground">
-                {activeSection.label} 좌석 선택
-              </h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">{activeSection.label}</h3>
+                <span className="text-xs text-muted-foreground">최대 5석</span>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {activeSection.seatIds.map((seatId) => {
                   const selected = selectedSeatIds.includes(seatId);
+
                   return (
                     <button
                       key={seatId}
@@ -263,10 +273,10 @@ export function SeatSelectionPage() {
                           return [...current, seatId];
                         });
                       }}
-                      className={`rounded-full px-3 py-2 text-xs font-semibold ${
+                      className={`min-w-20 rounded-full px-3 py-2 text-xs font-semibold transition ${
                         selected
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-panel"
                       }`}
                     >
                       Seat #{seatId}
@@ -279,10 +289,10 @@ export function SeatSelectionPage() {
         </div>
 
         {demoMode && activeSection ? (
-          <div className="space-y-3">
-            <div className="rounded-card border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-muted-foreground">
-              데모 시트맵은 실제 좌석 도면이 아니라, 현재 seat id 목록을 시각적으로 정돈해 보여주는
-              mock/demo 모드입니다.
+          <div className="rounded-card border border-border bg-surface p-5 shadow-card">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-foreground">도면 보기</h2>
+              <StatusBadge label="미리보기" tone="muted" />
             </div>
             <SeatMapGrid
               blocks={mockBlocks}
@@ -306,10 +316,17 @@ export function SeatSelectionPage() {
 
       <aside className="space-y-4">
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="text-lg font-semibold">선택 요약</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            선택 좌석 {selectedSeatIds.length}석 / 최대 5석
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">선택 요약</h2>
+          <div className="mt-4 space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">구역</span>
+              <span className="font-medium text-foreground">{activeSection?.label ?? "-"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">선택 좌석</span>
+              <span className="font-medium text-foreground">{selectedSeatIds.length}석</span>
+            </div>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {selectedSeatIds.length > 0 ? (
               selectedSeatIds.map((seatId) => (
@@ -321,26 +338,37 @@ export function SeatSelectionPage() {
                 </span>
               ))
             ) : (
-              <span className="text-sm text-muted-foreground">아직 선택한 좌석이 없습니다.</span>
+              <span className="text-sm text-muted-foreground">선택한 좌석이 없습니다.</span>
             )}
           </div>
-          <div className="mt-5 rounded-card bg-muted px-4 py-4 text-sm text-muted-foreground">
-            실시간 총액 계산 API가 없어, 현재 단계에서는 회차 가격표와 주문 생성 결과를 함께
-            안내합니다.
-          </div>
+
+          {priceEntries.length > 0 ? (
+            <div className="mt-5 rounded-card bg-panel px-4 py-4">
+              <h3 className="text-sm font-semibold text-foreground">가격 안내</h3>
+              <div className="mt-3 space-y-2 text-sm">
+                {priceEntries.map(([grade, price]) => (
+                  <div key={grade} className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{grade}</span>
+                    <span className="font-medium text-foreground">{formatCurrency(price)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-5 hidden xl:block">{holdAction}</div>
         </div>
 
         {draft?.hold ? (
           <div className="rounded-card border border-border bg-surface p-5 shadow-card">
-            <h3 className="text-sm font-semibold">최근 홀드 정보</h3>
+            <h3 className="text-sm font-semibold text-foreground">최근 홀드</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               {draft.hold.seatSectionName} · {draft.hold.seatLabels.join(", ")}
             </p>
             <div className="mt-4">
               <Link to="/checkout">
                 <Button fullWidth variant="secondary">
-                  주문 생성으로 이동
+                  주문 확인
                 </Button>
               </Link>
             </div>

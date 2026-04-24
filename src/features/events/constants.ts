@@ -22,6 +22,7 @@ export const locationOptions = [
 
 export const eventSortOptions = [
   { value: "recommended", label: "추천순" },
+  { value: "status", label: "상태순" },
   { value: "openDate", label: "오픈일순" },
   { value: "closingSoon", label: "마감 임박순" },
 ] as const;

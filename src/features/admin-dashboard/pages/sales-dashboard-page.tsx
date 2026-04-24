@@ -3,9 +3,9 @@ import { useSalesDashboardQuery } from "@/features/admin-dashboard/api/dashboard
 import { SalesTrendChart } from "@/features/admin-dashboard/components/sales-trend-chart";
 import type { SalesDashboardFilters } from "@/features/admin-dashboard/types";
 import { useEventsQuery } from "@/features/events/api/events";
+import { formatCount, formatCurrency, toLocalDateTimeString } from "@/shared/lib/format";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { Button } from "@/shared/ui/button";
-import { formatCount, formatCurrency, toLocalDateTimeString } from "@/shared/lib/format";
 
 function defaultRange() {
   const to = new Date();
@@ -17,12 +17,15 @@ function defaultRange() {
 }
 
 export function SalesDashboardPage() {
-  const range = defaultRange();
-  const [filters, setFilters] = useState<SalesDashboardFilters>({
-    from: range.from,
-    to: range.to,
-    granularity: "DAY",
-    eventId: undefined,
+  const [filters, setFilters] = useState<SalesDashboardFilters>(() => {
+    const range = defaultRange();
+
+    return {
+      from: range.from,
+      to: range.to,
+      granularity: "DAY",
+      eventId: undefined,
+    };
   });
   const dashboardQuery = useSalesDashboardQuery(filters);
   const eventsQuery = useEventsQuery({ size: 100 }, false);
@@ -34,7 +37,7 @@ export function SalesDashboardPage() {
             { label: "판매 티켓", value: formatCount(dashboardQuery.data.summary.soldTicketCount) },
             { label: "결제 금액", value: formatCurrency(dashboardQuery.data.summary.paidAmount) },
             { label: "결제 건수", value: formatCount(dashboardQuery.data.summary.paymentCount) },
-            { label: "활성 회차", value: formatCount(dashboardQuery.data.summary.sessionCount) },
+            { label: "진행 회차", value: formatCount(dashboardQuery.data.summary.sessionCount) },
           ]
         : [],
     [dashboardQuery.data],
@@ -48,11 +51,7 @@ export function SalesDashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">
               Super Admin
             </p>
-            <h1 className="mt-3 text-3xl font-bold">판매 대시보드</h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              `/api/dashboard/v1/sales` 단일 응답을 기준으로 KPI, 회차 판매 속도, 기간 추이를
-              함께 제공합니다.
-            </p>
+            <h1 className="mt-3 text-3xl font-bold text-foreground">판매 대시보드</h1>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
             <label className="space-y-1 text-sm">
@@ -132,7 +131,10 @@ export function SalesDashboardPage() {
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summaryCards.map((card) => (
-              <div key={card.label} className="rounded-card border border-border bg-surface p-5 shadow-card">
+              <div
+                key={card.label}
+                className="rounded-card border border-border bg-surface p-5 shadow-card"
+              >
                 <p className="text-sm text-muted-foreground">{card.label}</p>
                 <p className="mt-3 text-2xl font-bold text-foreground">{card.value}</p>
               </div>
@@ -143,7 +145,7 @@ export function SalesDashboardPage() {
 
           <section className="rounded-card border border-border bg-surface p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">회차별 판매 속도</h2>
+              <h2 className="text-lg font-semibold text-foreground">회차별 판매 속도</h2>
               <Button variant="secondary" onClick={() => dashboardQuery.refetch()}>
                 새로고침
               </Button>

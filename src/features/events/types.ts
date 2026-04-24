@@ -30,6 +30,8 @@ export interface EventSearchFilters {
   size?: number;
 }
 
+export type EventSortValue = "recommended" | "status" | "openDate" | "closingSoon";
+
 export interface EventSessionItem {
   sessionId: number;
   eventTitle: string;
