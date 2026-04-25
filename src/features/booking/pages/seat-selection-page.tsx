@@ -6,6 +6,7 @@ import { generateSeatLayout } from "@/features/booking/seat-map/generate-seat-la
 import { SeatMapGrid } from "@/features/booking/seat-map/seat-map-grid";
 import { readBookingDraft, writeBookingDraft } from "@/features/booking/store/booking-draft";
 import { useEventSessionDetailQuery } from "@/features/events/api/events";
+import { getSeatPick, getTicketFeeEstimate } from "@/features/events/showcase";
 import { getErrorMessage } from "@/shared/api/error";
 import { env } from "@/shared/config/env";
 import { formatCountdown, formatDateTime, formatCurrency } from "@/shared/lib/format";
@@ -33,7 +34,7 @@ export function SeatSelectionPage() {
 
   const [selectedSectionId, setSelectedSectionId] = useState<number | undefined>();
   const [selectedSeatIds, setSelectedSeatIds] = useState<number[]>([]);
-  const [demoMode, setDemoMode] = useState(false);
+  const [demoMode, setDemoMode] = useState(true);
   const [draft, setDraft] = useState(readBookingDraft());
 
   useEffect(() => {
@@ -92,6 +93,11 @@ export function SeatSelectionPage() {
       Object.entries(sessionQuery.data?.ticketTypePrice ?? {}).sort((left, right) => left[0].localeCompare(right[0])),
     [sessionQuery.data?.ticketTypePrice],
   );
+  const baseTicketPrice = priceEntries[0]?.[1] ?? 0;
+  const selectedAmount = selectedSeatIds.length * baseTicketPrice;
+  const feeEstimate = getTicketFeeEstimate(selectedAmount);
+  const estimatedTotal =
+    feeEstimate.ticketAmount + feeEstimate.serviceFee + feeEstimate.deliveryFee;
 
   const holdAction = (
     <Button
@@ -142,7 +148,7 @@ export function SeatSelectionPage() {
         );
       }}
     >
-      {holdMutation.isPending ? "좌석 홀드 중..." : "좌석 홀드"}
+      {holdMutation.isPending ? "좌석 확인 중..." : "다음 단계로"}
     </Button>
   );
 
@@ -184,13 +190,22 @@ export function SeatSelectionPage() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="space-y-6">
+      <div className="mx-auto grid max-w-4xl grid-cols-4 overflow-hidden rounded-full border border-border bg-white text-center text-xs font-black text-zinc-500 shadow-card">
+        {["01 공연선택", "02 좌석선택", "03 결제", "04 완료"].map((step, index) => (
+          <div key={step} className={`py-3 ${index === 1 ? "bg-violet-100 text-violet-700" : ""}`}>
+            {step}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section className="space-y-5">
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm text-muted-foreground">{sessionQuery.data.eventTitle}</p>
-              <h1 className="mt-2 text-2xl font-bold text-foreground">좌석 선택</h1>
+              <h1 className="mt-2 text-3xl font-black text-foreground">좌석 선택</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 시작 {formatDateTime(sessionQuery.data.sessionOpenDate)} · 종료{" "}
                 {formatDateTime(sessionQuery.data.sessionCloseDate)}
@@ -209,15 +224,18 @@ export function SeatSelectionPage() {
 
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-foreground">구역 선택</h2>
+            <div>
+              <h2 className="text-lg font-black text-foreground">구역 선택</h2>
+              <p className="mt-1 text-sm text-muted-foreground">구역을 먼저 고른 뒤 좌석을 선택하세요.</p>
+            </div>
             {env.enableMockSeatMap ? (
               <Button variant="secondary" onClick={() => setDemoMode((current) => !current)}>
-                {demoMode ? "좌석 목록" : "도면 보기"}
+                {demoMode ? "좌석 목록" : "구역 보기"}
               </Button>
             ) : null}
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {groupedSections.map((section) => {
               const selected = selectedSectionId === section.sectionId;
 
@@ -230,7 +248,7 @@ export function SeatSelectionPage() {
                     setSelectedSeatIds([]);
                   }}
                   className={`rounded-card border p-4 text-left transition ${
-                    selected ? "border-primary bg-primary/5 shadow-card" : "border-border bg-panel"
+                    selected ? "border-violet-200 bg-violet-50 shadow-card" : "border-border bg-panel"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -245,7 +263,7 @@ export function SeatSelectionPage() {
             })}
           </div>
 
-          {activeSection ? (
+          {!demoMode && activeSection ? (
             <div className="mt-6">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-foreground">{activeSection.label}</h3>
@@ -291,7 +309,10 @@ export function SeatSelectionPage() {
         {demoMode && activeSection ? (
           <div className="rounded-card border border-border bg-surface p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-foreground">도면 보기</h2>
+              <div>
+                <h2 className="text-lg font-black text-foreground">좌석 배치도</h2>
+                <p className="mt-1 text-sm text-muted-foreground">실제 좌석 번호는 백엔드 좌석 ID와 연결됩니다.</p>
+              </div>
               <StatusBadge label="미리보기" tone="muted" />
             </div>
             <SeatMapGrid
@@ -312,11 +333,59 @@ export function SeatSelectionPage() {
             />
           </div>
         ) : null}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-card border border-border bg-white p-5 shadow-card">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-violet-700">TIXY MZ PICK</h2>
+              <span className="text-xs font-bold text-muted-foreground">더보기 →</span>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
+              {getSeatPick(sessionId).map((pick) => (
+                <div key={pick.title} className={`rounded-card border p-4 ${pick.active ? "border-violet-200 bg-violet-50" : "border-border bg-white"}`}>
+                  <span className="rounded-full bg-pink-100 px-2 py-1 text-[10px] font-black text-pink-600">
+                    {pick.active ? "인기" : "추천"}
+                  </span>
+                  <p className="mt-3 text-base font-black text-zinc-950">{pick.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{pick.note}</p>
+                  <p className="mt-4 text-sm font-black text-violet-600">선택 비율 {pick.ratio}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-card border border-border bg-white p-5 shadow-card">
+            <h2 className="text-lg font-black text-zinc-950">공연장 정보</h2>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">공연장</dt>
+                <dd className="font-bold text-zinc-900">올림픽공원 KSPO DOME</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">수용 인원</dt>
+                <dd className="font-bold text-zinc-900">{sessionQuery.data.sessionSeatCount.toLocaleString()}석</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">안내</dt>
+                <dd className="font-bold text-zinc-900">모바일 티켓 지원</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
       </section>
 
       <aside className="space-y-4">
         <div className="rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="text-lg font-semibold text-foreground">선택 요약</h2>
+          <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3">
+            <div className="aspect-square rounded-card bg-zinc-100" />
+            <div>
+              <p className="text-xs font-black text-violet-600">단독</p>
+              <h2 className="line-clamp-2 text-sm font-black text-foreground">{sessionQuery.data.eventTitle}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(sessionQuery.data.sessionOpenDate)}</p>
+            </div>
+          </div>
+
+          <h2 className="mt-6 text-lg font-black text-foreground">선택 요약</h2>
           <div className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">구역</span>
@@ -332,7 +401,7 @@ export function SeatSelectionPage() {
               selectedSeatIds.map((seatId) => (
                 <span
                   key={seatId}
-                  className="rounded-full bg-muted px-3 py-2 text-xs font-medium text-muted-foreground"
+                  className="rounded-full bg-violet-100 px-3 py-2 text-xs font-bold text-violet-700"
                 >
                   Seat #{seatId}
                 </span>
@@ -343,15 +412,27 @@ export function SeatSelectionPage() {
           </div>
 
           {priceEntries.length > 0 ? (
-            <div className="mt-5 rounded-card bg-panel px-4 py-4">
-              <h3 className="text-sm font-semibold text-foreground">가격 안내</h3>
+            <div className="mt-5 rounded-card border border-border bg-panel px-4 py-4">
+              <h3 className="text-sm font-black text-foreground">결제 금액</h3>
               <div className="mt-3 space-y-2 text-sm">
-                {priceEntries.map(([grade, price]) => (
-                  <div key={grade} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{grade}</span>
-                    <span className="font-medium text-foreground">{formatCurrency(price)}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">티켓 금액</span>
+                  <span className="font-bold text-foreground">{formatCurrency(feeEstimate.ticketAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">예매 수수료</span>
+                  <span className="font-bold text-foreground">{formatCurrency(feeEstimate.serviceFee)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">배송비</span>
+                  <span className="font-bold text-foreground">{formatCurrency(feeEstimate.deliveryFee)}</span>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-black text-foreground">총 결제 금액</span>
+                    <span className="text-xl font-black text-violet-600">{formatCurrency(estimatedTotal)}</span>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           ) : null}
@@ -376,6 +457,7 @@ export function SeatSelectionPage() {
           </div>
         ) : null}
       </aside>
+      </div>
     </div>
   );
 }

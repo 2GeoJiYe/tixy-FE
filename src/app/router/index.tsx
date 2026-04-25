@@ -16,6 +16,7 @@ import { WaitingPaymentPage } from "@/features/booking/pages/waiting-payment-pag
 import { SupportHomePage } from "@/features/support/pages/support-home-page";
 import { SupportRoomsPage } from "@/features/support/pages/support-rooms-page";
 import { SupportRoomPage } from "@/features/support/pages/support-room-page";
+import { MyPage } from "@/features/member/pages/my-page";
 import { AdminSupportQueuePage } from "@/features/admin-support/pages/admin-support-queue-page";
 import { AdminSupportClosedPage } from "@/features/admin-support/pages/admin-support-closed-page";
 import { AdminSupportStalePage } from "@/features/admin-support/pages/admin-support-stale-page";
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "checkout", element: <CheckoutPage /> },
           { path: "checkout/waiting-payment", element: <WaitingPaymentPage /> },
+          { path: "mypage", element: <MyPage /> },
           { path: "support", element: <SupportHomePage /> },
           { path: "support/rooms", element: <SupportRoomsPage /> },
           { path: "support/rooms/:roomId", element: <SupportRoomPage /> },

@@ -1,4 +1,5 @@
 import { categoryOptions, eventSortOptions, locationOptions } from "@/features/events/constants";
+import { moodChips } from "@/features/events/showcase";
 import type { EventSearchFilters, EventSortValue } from "@/features/events/types";
 import { normalizeEventSort } from "@/features/events/utils";
 import { Button } from "@/shared/ui/button";
@@ -34,8 +35,31 @@ export function FilterPanel({
 }: FilterPanelProps) {
   return (
     <div className="space-y-5 rounded-card border border-border bg-surface p-5 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-extrabold text-foreground">필터</h2>
+          <p className="mt-1 text-xs text-muted-foreground">취향에 맞게 공연을 좁혀보세요</p>
+        </div>
+        <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-black text-zinc-950">
+          TIXY
+        </span>
+      </div>
       <section>
-        <h3 className="text-sm font-semibold text-foreground">카테고리</h3>
+        <h3 className="text-sm font-bold text-foreground">분위기</h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {moodChips.map((mood) => (
+            <button
+              key={mood}
+              type="button"
+              className="whitespace-nowrap rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+            >
+              {mood}
+            </button>
+          ))}
+        </div>
+      </section>
+      <section>
+        <h3 className="text-sm font-bold text-foreground">장르</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {categoryOptions.map((option) => {
             const selected = filters.category?.includes(option.value);
@@ -49,10 +73,10 @@ export function FilterPanel({
                     category: toggleArrayItem(filters.category, option.value),
                   })
                 }
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
                   selected
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "border border-border bg-white text-muted-foreground"
                 }`}
               >
                 {option.label}
@@ -63,7 +87,7 @@ export function FilterPanel({
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-foreground">지역</h3>
+        <h3 className="text-sm font-bold text-foreground">지역</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {locationOptions.map((option) => {
             const selected = filters.area?.includes(option.value);
@@ -77,10 +101,10 @@ export function FilterPanel({
                     area: toggleArrayItem(filters.area, option.value),
                   })
                 }
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
                   selected
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "border border-border bg-white text-muted-foreground"
                 }`}
               >
                 {option.label}

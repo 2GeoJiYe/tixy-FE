@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageBubble } from "@/features/support/components/message-bubble";
 import { useSupportRealtime } from "@/features/support/realtime/use-support-realtime";
 import { useRoomMessagesQuery } from "@/features/support/api/support";
+import { suggestedSupportQuestions } from "@/features/support/suggested-questions";
 import {
   readStoredReadReceipt,
   writeStoredReadReceipt,
@@ -72,14 +73,23 @@ export function SupportRoomThread({
       queryClient.invalidateQueries({ queryKey: ["support"] });
     },
   });
+  const canSendMessage = !readOnly && room.status !== "CLOSED" && status === "connected";
 
   useEffect(() => {
     setLiveMessages([]);
     setLastReadEvent(readStoredReadReceipt(room.roomId));
   }, [room.roomId]);
 
-  const lastReadMessageId = useMemo(() => {
+  const peerLastReadMessageId = useMemo(() => {
     if (!lastReadEvent || lastReadEvent.readerUserId === currentUserId) {
+      return null;
+    }
+
+    return lastReadEvent.lastReadMessageId;
+  }, [currentUserId, lastReadEvent]);
+
+  const latestReadOwnMessageId = useMemo(() => {
+    if (peerLastReadMessageId == null) {
       return null;
     }
 
@@ -87,14 +97,31 @@ export function SupportRoomThread({
     allMessages.forEach((message) => {
       if (
         message.senderUserId === currentUserId &&
-        message.messageId <= lastReadEvent.lastReadMessageId
+        message.messageType === "TEXT" &&
+        message.messageId <= peerLastReadMessageId
       ) {
         candidate = message.messageId;
       }
     });
 
     return candidate;
-  }, [allMessages, currentUserId, lastReadEvent]);
+  }, [allMessages, currentUserId, peerLastReadMessageId]);
+
+  const getReadState = (message: MessageItem) => {
+    if (
+      message.senderUserId !== currentUserId ||
+      message.messageType !== "TEXT" ||
+      message.senderType === "SYSTEM"
+    ) {
+      return undefined;
+    }
+
+    if (peerLastReadMessageId == null || message.messageId > peerLastReadMessageId) {
+      return "unread" as const;
+    }
+
+    return message.messageId === latestReadOwnMessageId ? ("read" as const) : undefined;
+  };
 
   useEffect(() => {
     const latest = allMessages[allMessages.length - 1];
@@ -114,10 +141,14 @@ export function SupportRoomThread({
     element.scrollTop = element.scrollHeight;
   }, [allMessages.length, lastReadEvent?.lastReadMessageId, lastReadEvent?.readAt]);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const content = draft.trim();
+  const publishMessage = (message: string, options?: { clearDraft?: boolean }) => {
+    const content = message.trim();
     if (!content) {
+      return;
+    }
+
+    if (!canSendMessage) {
+      showToast("WebSocket 연결이 준비되면 다시 시도해 주세요.", "warning");
       return;
     }
 
@@ -127,14 +158,30 @@ export function SupportRoomThread({
       return;
     }
 
-    setDraft("");
+    if (options?.clearDraft) {
+      setDraft("");
+    }
+  };
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    publishMessage(draft, { clearDraft: true });
+  };
+
+  const onMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   return (
-    <div className="flex min-h-[560px] flex-col rounded-card border border-border bg-surface shadow-card">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+    <div id="support-chat-thread" className="flex h-[calc(100vh-64px)] min-h-[880px] max-h-[1240px] min-w-0 scroll-mt-28 flex-col rounded-card border border-border bg-surface shadow-card">
+      <div className="shrink-0 flex items-center justify-between border-b border-border px-5 py-4">
         <div>
-          <h2 className="text-lg font-semibold">문의방 #{room.roomId}</h2>
+          <h2 className="text-lg font-black">문의방 #{room.roomId}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             실시간 연결 상태 {status === "connected" ? "연결됨" : status === "connecting" ? "연결 중" : "끊김"}
           </p>
@@ -147,7 +194,7 @@ export function SupportRoomThread({
 
       <div
         ref={containerRef}
-        className="flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,250,252,0.2),rgba(255,255,255,0.8))] px-5 py-5"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(250,250,250,0.7),rgba(255,255,255,1))] px-5 py-5"
       >
         {messagesQuery.hasNextPage ? (
           <div className="flex justify-center">
@@ -166,12 +213,28 @@ export function SupportRoomThread({
             key={message.messageId}
             message={message}
             isMine={message.senderUserId != null && message.senderUserId === currentUserId}
-            readIndicator={lastReadMessageId === message.messageId ? "읽음" : undefined}
+            readState={getReadState(message)}
           />
         ))}
       </div>
 
-      <form onSubmit={onSubmit} className="border-t border-border px-5 py-4">
+      <div className="shrink-0 border-t border-violet-100 bg-violet-50/60 px-5 py-3">
+        <div className="flex flex-wrap gap-2 text-xs font-bold text-zinc-700">
+          {suggestedSupportQuestions.slice(0, 4).map((item) => (
+            <button
+              key={item.question}
+              type="button"
+              disabled={!canSendMessage}
+              onClick={() => publishMessage(item.question)}
+              className="rounded-full border border-violet-100 bg-white px-3 py-2 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {item.question}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="shrink-0 border-t border-border px-5 py-4">
         <Textarea
           disabled={readOnly || room.status === "CLOSED"}
           placeholder={
@@ -183,12 +246,27 @@ export function SupportRoomThread({
           }
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          className="min-h-24 resize-none"
+          onKeyDown={onMessageKeyDown}
+          className="min-h-20 resize-none"
         />
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2 text-xs font-bold text-muted-foreground">
+            {suggestedSupportQuestions.map((item) => (
+              <button
+                key={item.category}
+                type="button"
+                disabled={!canSendMessage}
+                onClick={() => publishMessage(item.question)}
+                className="rounded-full bg-zinc-50 px-3 py-2 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                title={item.question}
+              >
+                {item.category}
+              </button>
+            ))}
+          </div>
           <Button
             type="submit"
-            disabled={readOnly || room.status === "CLOSED" || status !== "connected"}
+            disabled={!canSendMessage}
             onClick={() => {
               if (status !== "connected") {
                 showToast("WebSocket 연결이 준비되면 다시 시도해 주세요.", "warning");

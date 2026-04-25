@@ -6,6 +6,7 @@ import type {
   EventSessionItem,
   EventSortValue,
 } from "@/features/events/types";
+import { getDisplayCategory, getDisplayPriceLabel, getGeneratedPosterImage } from "@/features/events/showcase";
 import { formatCurrency, formatDateTime } from "@/shared/lib/format";
 
 const eventStatusPriority: Record<string, number> = {
@@ -99,16 +100,22 @@ export function getEventStatusPresentation(status: string) {
   }
 }
 
+export function isEventBookable(status: string) {
+  return normalizeEventStatus(status) !== "CLOSED";
+}
+
 export function toEventCardModel(event: EventItem, tag?: string): EventCardModel {
   const status = getEventStatusPresentation(event.eventStatus);
+  const displayCategory = getDisplayCategory(event, tag ? categoryLabel(tag) : undefined);
 
   return {
     ...event,
-    posterUrl: null,
+    posterUrl: getGeneratedPosterImage(event.id, displayCategory),
     locationLabel: getLocationLabel(event.location),
     statusLabel: status.label,
     statusTone: status.tone,
-    tags: tag ? [tag] : [],
+    priceLabel: getDisplayPriceLabel(event.id),
+    tags: [displayCategory],
   };
 }
 
@@ -185,6 +192,10 @@ export function getSessionSaleStatus(detail: EventSessionDetail) {
     label: `예매 가능 · ${formatDateTime(detail.saleCloseDate)} 마감`,
     tone: "success" as const,
   };
+}
+
+export function isSessionBookable(status: string) {
+  return normalizeEventStatus(status) !== "CLOSED";
 }
 
 export function categoryLabel(category: string) {

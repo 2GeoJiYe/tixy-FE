@@ -5,13 +5,13 @@ import type { MessageItem } from "@/features/support/types";
 interface MessageBubbleProps {
   message: MessageItem;
   isMine: boolean;
-  readIndicator?: string;
+  readState?: "read" | "unread";
 }
 
 const senderStyle = {
-  USER: "bg-primary text-primary-foreground",
+  USER: "bg-violet-200 text-zinc-950",
   COUNSELOR: "bg-slate-900 text-white",
-  AI: "bg-rose-50 text-slate-700 border border-rose-100",
+  AI: "bg-white text-slate-700 border border-border",
   SYSTEM: "bg-muted text-muted-foreground",
 } as const;
 
@@ -22,11 +22,13 @@ const senderLabel = {
   SYSTEM: "시스템",
 } as const;
 
-export function MessageBubble({ message, isMine, readIndicator }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, readState }: MessageBubbleProps) {
+  const showReadState = isMine && readState;
+
   return (
     <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
       <div className="max-w-[85%]">
-        <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
+        <p className={cn("mb-1 text-[11px] font-semibold text-muted-foreground", isMine && "text-right")}>
           {senderLabel[message.senderType]}
         </p>
         <div
@@ -39,8 +41,19 @@ export function MessageBubble({ message, isMine, readIndicator }: MessageBubbleP
           {message.content}
         </div>
         <div className={cn("mt-1 flex items-center gap-2 text-[11px] text-muted-foreground", isMine && "justify-end")}>
+          {showReadState ? (
+            <span
+              className={cn(
+                "font-black",
+                readState === "unread"
+                  ? "inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-zinc-950"
+                  : "text-violet-600",
+              )}
+            >
+              {readState === "unread" ? "1" : "읽음"}
+            </span>
+          ) : null}
           <span>{formatDateTime(message.createdAt)}</span>
-          {readIndicator ? <span className="font-semibold text-primary">{readIndicator}</span> : null}
         </div>
       </div>
     </div>

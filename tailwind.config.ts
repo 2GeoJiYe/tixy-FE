@@ -19,13 +19,13 @@ const config: Config = {
         panel: "rgb(var(--color-panel) / <alpha-value>)",
       },
       borderRadius: {
-        card: "1rem",
-        button: "0.85rem",
-        input: "0.85rem",
+        card: "0.5rem",
+        button: "999px",
+        input: "999px",
       },
       boxShadow: {
-        card: "0 10px 30px rgba(15, 23, 42, 0.05)",
-        panel: "0 18px 45px rgba(15, 23, 42, 0.08)",
+        card: "0 14px 36px rgba(24, 24, 27, 0.045)",
+        panel: "0 22px 55px rgba(24, 24, 27, 0.08)",
       },
       fontFamily: {
         sans: [

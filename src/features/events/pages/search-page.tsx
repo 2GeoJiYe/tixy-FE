@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useEventsQuery } from "@/features/events/api/events";
 import { FilterChipGroup } from "@/features/events/components/filter-chip-group";
 import { FilterPanel } from "@/features/events/components/filter-panel";
 import { SearchBar } from "@/features/events/components/search-bar";
 import { SearchResultHeader } from "@/features/events/components/search-result-header";
 import { categoryOptions, eventSortOptions, locationOptions } from "@/features/events/constants";
+import { getEventAccent, moodChips } from "@/features/events/showcase";
 import type { EventSearchFilters, EventSortValue } from "@/features/events/types";
 import {
   normalizeEventSort,
@@ -18,6 +19,7 @@ import { AuthRequiredNotice } from "@/shared/ui/auth-required-notice";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { EventCard } from "@/shared/ui/event-card";
+import { PosterImage } from "@/shared/ui/poster-image";
 
 function readFilters(searchParams: URLSearchParams): EventSearchFilters {
   const readArray = (key: string) => searchParams.getAll(key);
@@ -156,32 +158,119 @@ export function SearchPage() {
   };
 
   const unauthorized = query.error && "status" in query.error && query.error.status === 401;
+  const spotlightItems = sortedItems.slice(0, 3);
+  const keywordItems = sortedItems.slice(0, 10);
 
   return (
     <div className="space-y-6">
-      <SearchBar
-        defaultValue={filters.keyword}
-        onSearch={(keyword) => {
-          const next = { ...filters, keyword: keyword || undefined };
-          setDraftFilters(next);
-          setSearchParams(writeFilters(next, sort));
-        }}
-      />
+      <section className="rounded-card border border-border bg-white p-5 shadow-panel md:p-6">
+        <div className="grid gap-5 xl:grid-cols-[1fr_1fr] xl:items-end">
+          <SearchBar
+            defaultValue={filters.keyword}
+            onSearch={(keyword) => {
+              const next = { ...filters, keyword: keyword || undefined };
+              setDraftFilters(next);
+              setSearchParams(writeFilters(next, sort));
+            }}
+          />
+          <div className="flex flex-wrap gap-2 xl:justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const next = { ...filters, category: undefined };
+                setDraftFilters(next);
+                setSearchParams(writeFilters(next, sort));
+              }}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-black ${
+                !filters.category?.length ? "bg-primary text-zinc-950" : "border border-border bg-white text-zinc-700"
+              }`}
+            >
+              전체
+            </button>
+            {categoryOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  const next = { ...filters, category: [option.value] };
+                  setDraftFilters(next);
+                  setSearchParams(writeFilters(next, sort));
+                }}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-black ${
+                  filters.category?.includes(option.value)
+                    ? "bg-primary text-zinc-950"
+                    : "border border-border bg-white text-zinc-700"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <SearchResultHeader
-        title={filters.keyword ? `"${filters.keyword}" 검색` : defaultLanding ? "판매 중 공연" : "공연 검색"}
-        resultCount={sortedItems.length}
-        sortLabel={eventSortOptions.find((option) => option.value === sort)?.label ?? "추천순"}
-      />
+        <div className="mt-5 grid gap-4 lg:grid-cols-[80px_minmax(0,1fr)]">
+          <span className="text-sm font-black text-zinc-800">지역</span>
+          <div className="flex flex-wrap gap-2">
+            {locationOptions.slice(0, 12).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  const selected = filters.area?.includes(option.value);
+                  const nextArea = selected
+                    ? filters.area?.filter((item) => item !== option.value)
+                    : [...(filters.area ?? []), option.value];
+                  const next = { ...filters, area: nextArea };
+                  setDraftFilters(next);
+                  setSearchParams(writeFilters(next, sort));
+                }}
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold ${
+                  filters.area?.includes(option.value)
+                    ? "bg-primary text-zinc-950"
+                    : "border border-border bg-white text-zinc-600"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div className="flex items-center justify-between gap-3 xl:hidden">
-        <FilterChipGroup items={chips} onClear={clearFilters} />
-        <Button variant="secondary" onClick={() => setFilterDrawerOpen(true)}>
-          필터
-        </Button>
-      </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <select
+            className="h-11 rounded-full border border-border bg-white px-4 text-sm font-bold outline-none"
+            value={sort}
+            onChange={(event) => {
+              const nextSort = normalizeEventSort(event.target.value);
+              setDraftSort(nextSort);
+              setSearchParams(writeFilters(filters, nextSort));
+            }}
+          >
+            {eventSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <label className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-zinc-700">
+            <input
+              type="checkbox"
+              checked={filters.reservePossible !== false}
+              onChange={(event) => {
+                const next = { ...filters, reservePossible: event.target.checked };
+                setDraftFilters(next);
+                setSearchParams(writeFilters(next, sort));
+              }}
+            />
+            판매중만 보기
+          </label>
+          <Button variant="secondary" className="xl:hidden" onClick={() => setFilterDrawerOpen(true)}>
+            상세 필터
+          </Button>
+        </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[248px_minmax(0,1fr)_176px]">
         <aside className="hidden xl:block">
           <FilterPanel
             filters={draftFilters}
@@ -197,6 +286,36 @@ export function SearchPage() {
         </aside>
 
         <section className="space-y-4">
+          {spotlightItems.length > 0 ? (
+            <div className="rounded-card border border-border bg-white p-4 shadow-card">
+              <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="flex flex-col justify-center p-3">
+                  <p className="text-sm font-black text-violet-600">지금 뜨는 공연</p>
+                  <h1 className="mt-2 break-keep text-3xl font-black leading-tight text-zinc-950">TIXY 에디터 추천</h1>
+                  <p className="mt-3 text-sm text-muted-foreground">핫한 공연을 빠르게 모아봤어요.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {spotlightItems.map((event) => {
+                    const accent = getEventAccent(event.id);
+
+                    return (
+                      <Link key={event.id} to={`/events/${event.id}`} className="block">
+                        <div className="relative">
+                          <PosterImage title={event.title} imageUrl={event.posterUrl} className="aspect-[1.55/1] rounded-[10px]" />
+                          <span className={`absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black ${accent.color}`}>
+                            {accent.badge}
+                          </span>
+                        </div>
+                        <p className="mt-2 line-clamp-1 text-sm font-black text-zinc-900">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">{event.venue}</p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div className="hidden xl:block">
             <FilterChipGroup items={chips} onClear={clearFilters} />
           </div>
@@ -221,8 +340,14 @@ export function SearchPage() {
 
           {unauthorized ? <AuthRequiredNotice /> : null}
 
+          <SearchResultHeader
+            title={filters.keyword ? `"${filters.keyword}" 검색` : defaultLanding ? "판매 중 공연" : "공연 검색"}
+            resultCount={sortedItems.length}
+            sortLabel={eventSortOptions.find((option) => option.value === sort)?.label ?? "추천순"}
+          />
+
           {query.isLoading ? (
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="aspect-[0.72] animate-pulse rounded-card bg-muted" />
               ))}
@@ -243,12 +368,48 @@ export function SearchPage() {
             />
           ) : null}
 
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sortedItems.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>
         </section>
+
+        <aside className="hidden space-y-4 xl:block">
+          <div className="rounded-card border border-border bg-white p-4 shadow-card">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-zinc-950">지금 많이 찾는 키워드</h2>
+              <span className="text-xs text-muted-foreground">더보기</span>
+            </div>
+            <ol className="mt-4 space-y-3">
+              {(keywordItems.length ? keywordItems : sortedItems).slice(0, 10).map((event, index) => (
+                <li key={event.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 line-clamp-1 font-bold text-zinc-800">
+                    {String(index + 1).padStart(2, "0")} {event.title}
+                  </span>
+                  <span className="text-xs font-black text-danger">+{(index + 1) * 12}%</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="rounded-card border border-violet-200 bg-violet-100 p-4 shadow-card">
+            <p className="text-sm font-black text-violet-700">첫 예매라면?</p>
+            <h3 className="mt-2 text-lg font-black text-zinc-950">TIXY 가이드 보기</h3>
+            <Link to="/support" className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white font-black">
+              →
+            </Link>
+          </div>
+          <div className="rounded-card border border-border bg-white p-4 shadow-card">
+            <h2 className="text-sm font-black text-zinc-950">분위기 추천</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {moodChips.slice(0, 5).map((mood) => (
+                <span key={mood} className="rounded-full border border-border px-2.5 py-1 text-xs font-bold text-muted-foreground">
+                  {mood}
+                </span>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

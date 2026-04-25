@@ -18,16 +18,21 @@ export function SearchBar({ defaultValue = "", onSearch }: SearchBarProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3 shadow-card sm:flex-row"
+      className="flex flex-col gap-3 rounded-[22px] border border-border bg-surface p-2 shadow-card sm:flex-row"
     >
-      <Input
-        className="border-transparent bg-muted"
-        placeholder="공연명, 설명 키워드로 검색"
-        value={keyword}
-        onChange={(event) => setKeyword(event.target.value)}
-      />
+      <label className="relative min-w-0 flex-1">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+          Q
+        </span>
+        <Input
+          className="border-transparent bg-zinc-50 pl-9"
+          placeholder="공연, 아티스트, 장소를 검색해 보세요"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+        />
+      </label>
       <Button className="sm:w-32" type="submit">
-        검색
+        찾아보기
       </Button>
     </form>
   );
