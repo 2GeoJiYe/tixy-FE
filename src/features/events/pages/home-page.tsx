@@ -4,6 +4,7 @@ import { useEventsQuery, usePopularEventsQuery } from "@/features/events/api/eve
 import { getEventAccent, popularSearchTerms, quickNavItems } from "@/features/events/showcase";
 import {
   getFeaturedCollections,
+  isEventBookable,
   normalizeEventStatus,
   toEventCardModel,
 } from "@/features/events/utils";
@@ -35,7 +36,7 @@ function EventSection({
   compact?: boolean;
 }) {
   return (
-    <section className="space-y-5">
+    <section className="min-w-0 space-y-5">
       <SectionHeader eyebrow={eyebrow} title={title} />
       <div className={compact ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"}>
         {isLoading
@@ -46,6 +47,47 @@ function EventSection({
         <EmptyState title={emptyTitle} description="현재 노출할 공연이 없습니다." />
       ) : null}
     </section>
+  );
+}
+
+function EventSlideCard({ event }: { event: ReturnType<typeof toEventCardModel> }) {
+  const accent = getEventAccent(event.id);
+  const bookable = isEventBookable(event.eventStatus);
+
+  return (
+    <Link
+      to={`/events/${event.id}`}
+      className="group grid h-[132px] w-[calc(100vw-3rem)] max-w-[340px] flex-none snap-start grid-cols-[108px_minmax(0,1fr)] overflow-hidden rounded-card border border-border bg-white shadow-card transition hover:-translate-y-0.5 hover:border-zinc-300 sm:w-[320px] lg:w-[340px]"
+    >
+      <PosterImage title={event.title} imageUrl={event.posterUrl} className="h-full rounded-none border-0" />
+      <div className="flex min-w-0 flex-col justify-between p-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${accent.color}`}>
+              {accent.badge}
+            </span>
+            <span className="truncate text-[11px] font-bold text-muted-foreground">{event.tags[0] ?? "공연"}</span>
+          </div>
+          <h3 className="mt-2 line-clamp-2 break-keep text-sm font-black leading-5 text-zinc-950">
+            {event.title}
+          </h3>
+          <p className="mt-1 truncate text-xs font-medium text-muted-foreground">{event.venue}</p>
+        </div>
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0 text-[11px] text-muted-foreground">
+            <p className="truncate">{formatDateRange(event.openDate, event.endDate)}</p>
+            <p className="mt-0.5 truncate font-black text-zinc-900">{event.priceLabel}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+              bookable ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-400"
+            }`}
+          >
+            {bookable ? "예매" : "종료"}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -81,7 +123,7 @@ function EventCarouselSection({
   };
 
   return (
-    <section className="space-y-5">
+    <section className="min-w-0 max-w-full space-y-5 overflow-hidden">
       <SectionHeader
         eyebrow={eyebrow}
         title={title}
@@ -116,18 +158,14 @@ function EventCarouselSection({
 
       <div
         ref={scrollerRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {isLoading
           ? Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="min-w-[210px] snap-start sm:min-w-[230px] lg:min-w-[240px]">
-                <SkeletonCard />
-              </div>
+              <div key={index} className="h-[132px] w-[calc(100vw-3rem)] max-w-[340px] flex-none snap-start animate-pulse rounded-card bg-muted sm:w-[320px] lg:w-[340px]" />
             ))
           : events.slice(0, 12).map((event) => (
-              <div key={event.id} className="min-w-[210px] snap-start sm:min-w-[230px] lg:min-w-[240px]">
-                <EventCard event={event} size="compact" />
-              </div>
+              <EventSlideCard key={event.id} event={event} />
             ))}
       </div>
 
@@ -396,7 +434,7 @@ export function HomePage() {
             onViewAll={() => navigate("/search?reservePossible=true")}
           />
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-2">
             <EventSection
               eyebrow="Today"
               title="오늘 오픈"
@@ -405,13 +443,13 @@ export function HomePage() {
               emptyTitle="오늘 오픈하는 공연이 없습니다."
               compact
             />
-            <EventSection
+            <EventCarouselSection
               eyebrow="Closing Soon"
               title="곧 마감"
               events={closingSoonCards}
               isLoading={availableEventsQuery.isLoading || upcomingEventsQuery.isLoading}
               emptyTitle="곧 마감되는 공연이 없습니다."
-              compact
+              onViewAll={() => navigate("/search?sort=closingSoon")}
             />
           </div>
 

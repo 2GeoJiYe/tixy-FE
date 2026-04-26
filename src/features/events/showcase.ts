@@ -42,6 +42,17 @@ export const generatedPosterImages = [
   "/assets/posters/tixy-poster-06.png",
   "/assets/posters/tixy-poster-07.png",
   "/assets/posters/tixy-poster-08.png",
+  "/assets/posters/tixy-poster-09.png",
+  "/assets/posters/tixy-poster-10.png",
+  "/assets/posters/tixy-poster-11.png",
+  "/assets/posters/tixy-poster-12.png",
+  "/assets/posters/tixy-poster-13.png",
+  "/assets/posters/tixy-poster-14.png",
+  "/assets/posters/tixy-poster-15.png",
+  "/assets/posters/tixy-poster-16.png",
+  "/assets/posters/tixy-poster-17.png",
+  "/assets/posters/tixy-poster-18.png",
+  "/assets/posters/tixy-poster-19.png",
 ];
 
 const generatedPosterImagesByCategory: Record<string, string[]> = {
@@ -50,24 +61,36 @@ const generatedPosterImagesByCategory: Record<string, string[]> = {
     "/assets/posters/tixy-poster-05.png",
     "/assets/posters/tixy-poster-06.png",
     "/assets/posters/tixy-poster-08.png",
+    "/assets/posters/tixy-poster-12.png",
+    "/assets/posters/tixy-poster-13.png",
   ],
   뮤지컬: [
     "/assets/posters/tixy-poster-02.png",
     "/assets/posters/tixy-poster-07.png",
+    "/assets/posters/tixy-poster-14.png",
+    "/assets/posters/tixy-poster-15.png",
   ],
   연극: [
     "/assets/posters/tixy-poster-07.png",
     "/assets/posters/tixy-poster-02.png",
+    "/assets/posters/tixy-poster-16.png",
+    "/assets/posters/tixy-poster-17.png",
   ],
   전시: [
     "/assets/posters/tixy-poster-03.png",
+    "/assets/posters/tixy-poster-18.png",
+    "/assets/posters/tixy-poster-19.png",
   ],
   스포츠: [
     "/assets/posters/tixy-poster-04.png",
+    "/assets/posters/tixy-poster-09.png",
+    "/assets/posters/tixy-poster-10.png",
+    "/assets/posters/tixy-poster-11.png",
   ],
   페스티벌: [
     "/assets/posters/tixy-poster-05.png",
     "/assets/posters/tixy-poster-01.png",
+    "/assets/posters/tixy-poster-12.png",
   ],
   추천: [
     "/assets/posters/tixy-poster-01.png",
@@ -75,6 +98,9 @@ const generatedPosterImagesByCategory: Record<string, string[]> = {
     "/assets/posters/tixy-poster-03.png",
     "/assets/posters/tixy-poster-05.png",
     "/assets/posters/tixy-poster-08.png",
+    "/assets/posters/tixy-poster-12.png",
+    "/assets/posters/tixy-poster-14.png",
+    "/assets/posters/tixy-poster-18.png",
   ],
 };
 
