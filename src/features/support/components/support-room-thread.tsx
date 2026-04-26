@@ -29,6 +29,7 @@ export function SupportRoomThread({
   const { showToast } = useToast();
   const [draft, setDraft] = useState("");
   const [liveMessages, setLiveMessages] = useState<MessageItem[]>([]);
+  const [pendingAiReply, setPendingAiReply] = useState(false);
   const [lastReadEvent, setLastReadEvent] = useState<ReadReceiptEvent | null>(() =>
     readStoredReadReceipt(room.roomId),
   );
@@ -61,6 +62,9 @@ export function SupportRoomThread({
           createdAt: event.createdAt,
         },
       ]);
+      if (event.senderType !== "USER") {
+        setPendingAiReply(false);
+      }
       queryClient.invalidateQueries({ queryKey: ["support", "room", room.roomId] });
       queryClient.invalidateQueries({ queryKey: ["support"] });
     },
@@ -74,11 +78,23 @@ export function SupportRoomThread({
     },
   });
   const canSendMessage = !readOnly && room.status !== "CLOSED" && status === "connected";
+  const waitingForAiReply =
+    pendingAiReply &&
+    !readOnly &&
+    room.status !== "CLOSED" &&
+    !room.customerRequestedCounselorAt;
 
   useEffect(() => {
     setLiveMessages([]);
+    setPendingAiReply(false);
     setLastReadEvent(readStoredReadReceipt(room.roomId));
   }, [room.roomId]);
+
+  useEffect(() => {
+    if (room.customerRequestedCounselorAt || room.status === "CLOSED") {
+      setPendingAiReply(false);
+    }
+  }, [room.customerRequestedCounselorAt, room.status]);
 
   const peerLastReadMessageId = useMemo(() => {
     if (!lastReadEvent || lastReadEvent.readerUserId === currentUserId) {
@@ -139,7 +155,7 @@ export function SupportRoomThread({
     }
 
     element.scrollTop = element.scrollHeight;
-  }, [allMessages.length, lastReadEvent?.lastReadMessageId, lastReadEvent?.readAt]);
+  }, [allMessages.length, lastReadEvent?.lastReadMessageId, lastReadEvent?.readAt, waitingForAiReply]);
 
   const publishMessage = (message: string, options?: { clearDraft?: boolean }) => {
     const content = message.trim();
@@ -156,6 +172,10 @@ export function SupportRoomThread({
     if (!published) {
       showToast("WebSocket 연결이 준비되면 다시 시도해 주세요.", "warning");
       return;
+    }
+
+    if (!room.customerRequestedCounselorAt) {
+      setPendingAiReply(true);
     }
 
     if (options?.clearDraft) {
@@ -216,6 +236,8 @@ export function SupportRoomThread({
             readState={getReadState(message)}
           />
         ))}
+
+        {waitingForAiReply ? <AiReplyIndicator /> : null}
       </div>
 
       <div className="shrink-0 border-t border-violet-100 bg-violet-50/60 px-5 py-3">
@@ -277,6 +299,34 @@ export function SupportRoomThread({
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function AiReplyIndicator() {
+  return (
+    <div className="flex justify-start" aria-live="polite" aria-label="AI 답변 생성 중">
+      <div className="max-w-[85%]">
+        <p className="mb-1 text-[11px] font-semibold text-muted-foreground">AI</p>
+        <div className="rounded-[18px] border border-violet-100 bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-card">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100">
+              <span className="absolute h-8 w-8 animate-ping rounded-full bg-violet-200 opacity-60" />
+              <span className="relative text-[11px] font-black text-violet-700">AI</span>
+            </span>
+            <span className="font-bold text-zinc-700">AI 답변 생성 중</span>
+            <span className="flex items-center gap-1" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <span
+                  key={index}
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-violet-500"
+                  style={{ animationDelay: `${index * 120}ms` }}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
