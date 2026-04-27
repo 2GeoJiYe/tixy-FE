@@ -1,19 +1,29 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/app/providers/auth-provider";
 import { cn } from "@/shared/lib/cn";
+import type { AppRole } from "@/shared/types/auth";
 
-const items = [
-  { label: "대기열", to: "/admin/support/queue" },
-  { label: "종료 문의", to: "/admin/support/rooms/closed" },
-  { label: "Stale 문의", to: "/admin/support/rooms/stale" },
-  { label: "판매 대시보드", to: "/admin/dashboard/sales" },
+const items: Array<{
+  label: string;
+  superAdminLabel?: string;
+  to: string;
+  roles?: AppRole[];
+}> = [
+  {
+    label: "담당 중",
+    superAdminLabel: "전체 문의",
+    to: "/admin/support/rooms",
+    roles: ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
+  },
+  { label: "대기열", to: "/admin/support/queue", roles: ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"] },
+  { label: "종료 문의", to: "/admin/support/rooms/closed", roles: ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"] },
+  { label: "장기 미응답", to: "/admin/support/rooms/stale", roles: ["ROLE_SUPER_ADMIN"] },
+  { label: "판매 대시보드", to: "/admin/dashboard/sales", roles: ["ROLE_SUPER_ADMIN"] },
 ];
 
 export function AdminLayout() {
   const { user } = useAuth();
-  const visibleItems = items.filter(
-    (item) => item.to !== "/admin/dashboard/sales" || user?.role === "ROLE_SUPER_ADMIN",
-  );
+  const visibleItems = items.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
 
   return (
     <div className="space-y-6">
@@ -25,6 +35,7 @@ export function AdminLayout() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === "/admin/support/rooms"}
               className={({ isActive }) =>
                 cn(
                   "rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground",
@@ -32,7 +43,9 @@ export function AdminLayout() {
                 )
               }
             >
-              {item.label}
+              {user?.role === "ROLE_SUPER_ADMIN" && item.superAdminLabel
+                ? item.superAdminLabel
+                : item.label}
             </NavLink>
           ))}
         </div>

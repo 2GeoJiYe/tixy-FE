@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getKoreaTime } from "@/shared/lib/format";
 
 export function useCountdown(expiresAt: string | null | undefined) {
   const calculateRemaining = () => {
@@ -6,7 +7,7 @@ export function useCountdown(expiresAt: string | null | undefined) {
       return 0;
     }
 
-    return Math.max(0, new Date(expiresAt).getTime() - Date.now());
+    return Math.max(0, getKoreaTime(expiresAt) - Date.now());
   };
 
   const [remaining, setRemaining] = useState(calculateRemaining);

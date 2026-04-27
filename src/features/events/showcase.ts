@@ -1,5 +1,5 @@
 import type { EventCardModel, EventItem } from "@/features/events/types";
-import { formatCurrency } from "@/shared/lib/format";
+import { differenceInKoreaCalendarDays, formatCurrency } from "@/shared/lib/format";
 
 export const quickNavItems = [
   { label: "홈", to: "/" },
@@ -154,7 +154,10 @@ export function getCountdownLabel(dateText?: string) {
     return "일정 확인";
   }
 
-  const diffDays = Math.ceil((new Date(dateText).getTime() - Date.now()) / 86_400_000);
+  const diffDays = differenceInKoreaCalendarDays(dateText);
+  if (diffDays == null) {
+    return "일정 확인";
+  }
 
   if (diffDays < 0) return "진행중";
   if (diffDays === 0) return "D-Day";

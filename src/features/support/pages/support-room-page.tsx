@@ -6,7 +6,7 @@ import {
 } from "@/features/support/api/support";
 import { SupportRoomThread } from "@/features/support/components/support-room-thread";
 import { getErrorMessage } from "@/shared/api/error";
-import { formatDateTime } from "@/shared/lib/format";
+import { formatUtcDateTimeToKorea } from "@/shared/lib/format";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 import { Button } from "@/shared/ui/button";
 import { useToast } from "@/shared/ui/toast";
@@ -58,7 +58,7 @@ export function SupportRoomPage() {
               <dt className="text-muted-foreground">상담 요청</dt>
               <dd className="mt-1 font-medium text-foreground">
                 {room.customerRequestedCounselorAt
-                  ? formatDateTime(room.customerRequestedCounselorAt)
+                  ? formatUtcDateTimeToKorea(room.customerRequestedCounselorAt)
                   : "요청 전"}
               </dd>
             </div>

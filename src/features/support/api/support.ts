@@ -4,6 +4,7 @@ import { supportApiClient } from "@/shared/api/clients";
 import { supportApiPaths } from "@/features/support/config";
 import type { QueryValue } from "@/shared/api/types";
 import type {
+  AdminRoomActionResponse,
   CreateRoomResponse,
   MessageCursorResponse,
   RequestCounselorResponse,
@@ -66,7 +67,7 @@ export function useAdminStaleRoomsQuery(params?: SupportListParams) {
   });
 }
 
-export function useRoomDetailQuery(roomId: number) {
+export function useRoomDetailQuery(roomId: number, options?: { enabled?: boolean }) {
   const { accessToken } = useAuth();
   return useQuery({
     queryKey: supportKeys.room(roomId),
@@ -75,7 +76,7 @@ export function useRoomDetailQuery(roomId: number) {
         method: "GET",
         token: accessToken,
       }),
-    enabled: Number.isFinite(roomId),
+    enabled: Number.isFinite(roomId) && roomId > 0 && (options?.enabled ?? true),
   });
 }
 
@@ -132,7 +133,7 @@ function createAdminAction(pathBuilder: (roomId: number) => string) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: () =>
-        supportApiClient.request<{ roomId: number }>(pathBuilder(roomId), {
+        supportApiClient.request<AdminRoomActionResponse>(pathBuilder(roomId), {
           method: "POST",
           token: accessToken,
         }),

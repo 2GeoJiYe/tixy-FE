@@ -7,7 +7,7 @@ import type {
   EventSortValue,
 } from "@/features/events/types";
 import { getDisplayCategory, getDisplayPriceLabel, getGeneratedPosterImage } from "@/features/events/showcase";
-import { formatCurrency, formatDateTime } from "@/shared/lib/format";
+import { formatCurrency, formatDateTime, getKoreaTime, isSameKoreaDay } from "@/shared/lib/format";
 
 const eventStatusPriority: Record<string, number> = {
   OPEN: 0,
@@ -18,18 +18,7 @@ const eventStatusPriority: Record<string, number> = {
 const eventSortValues: EventSortValue[] = ["recommended", "status", "openDate", "closingSoon"];
 
 function getTime(value: string) {
-  return new Date(value).getTime();
-}
-
-function isSameDay(left: number, right: number) {
-  const leftDate = new Date(left);
-  const rightDate = new Date(right);
-
-  return (
-    leftDate.getFullYear() === rightDate.getFullYear() &&
-    leftDate.getMonth() === rightDate.getMonth() &&
-    leftDate.getDate() === rightDate.getDate()
-  );
+  return getKoreaTime(value);
 }
 
 function compareStatus(left: EventItem, right: EventItem) {
@@ -144,7 +133,7 @@ export function getFeaturedCollections(events: EventItem[]) {
   return {
     onSale,
     openingToday: visibleEvents
-      .filter((event) => isSameDay(getTime(event.openDate), now))
+      .filter((event) => isSameKoreaDay(event.openDate, now))
       .sort((left, right) => getTime(left.openDate) - getTime(right.openDate)),
     closingSoon: onSale
       .filter((event) => getTime(event.endDate) >= now)

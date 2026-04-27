@@ -1,6 +1,10 @@
 export interface JwtPayload {
   exp?: number;
   role?: string;
+  roles?: unknown;
+  authorities?: unknown;
+  auth?: unknown;
+  scope?: string;
   sub?: string;
 }
 

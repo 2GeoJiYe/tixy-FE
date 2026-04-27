@@ -18,12 +18,14 @@ interface SupportRoomThreadProps {
   room: RoomDetail;
   currentUserId: number;
   readOnly?: boolean;
+  showSuggestedQuestions?: boolean;
 }
 
 export function SupportRoomThread({
   room,
   currentUserId,
   readOnly = false,
+  showSuggestedQuestions = true,
 }: SupportRoomThreadProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -240,21 +242,23 @@ export function SupportRoomThread({
         {waitingForAiReply ? <AiReplyIndicator /> : null}
       </div>
 
-      <div className="shrink-0 border-t border-violet-100 bg-violet-50/60 px-5 py-3">
-        <div className="flex flex-wrap gap-2 text-xs font-bold text-zinc-700">
-          {suggestedSupportQuestions.slice(0, 4).map((item) => (
-            <button
-              key={item.question}
-              type="button"
-              disabled={!canSendMessage}
-              onClick={() => publishMessage(item.question)}
-              className="rounded-full border border-violet-100 bg-white px-3 py-2 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {item.question}
-            </button>
-          ))}
+      {showSuggestedQuestions ? (
+        <div className="shrink-0 border-t border-violet-100 bg-violet-50/60 px-5 py-3">
+          <div className="flex flex-wrap gap-2 text-xs font-bold text-zinc-700">
+            {suggestedSupportQuestions.slice(0, 4).map((item) => (
+              <button
+                key={item.question}
+                type="button"
+                disabled={!canSendMessage}
+                onClick={() => publishMessage(item.question)}
+                className="rounded-full border border-violet-100 bg-white px-3 py-2 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {item.question}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <form onSubmit={onSubmit} className="shrink-0 border-t border-border px-5 py-4">
         <Textarea
@@ -272,20 +276,24 @@ export function SupportRoomThread({
           className="min-h-20 resize-none"
         />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2 text-xs font-bold text-muted-foreground">
-            {suggestedSupportQuestions.map((item) => (
-              <button
-                key={item.category}
-                type="button"
-                disabled={!canSendMessage}
-                onClick={() => publishMessage(item.question)}
-                className="rounded-full bg-zinc-50 px-3 py-2 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-                title={item.question}
-              >
-                {item.category}
-              </button>
-            ))}
-          </div>
+          {showSuggestedQuestions ? (
+            <div className="flex flex-wrap gap-2 text-xs font-bold text-muted-foreground">
+              {suggestedSupportQuestions.map((item) => (
+                <button
+                  key={item.category}
+                  type="button"
+                  disabled={!canSendMessage}
+                  onClick={() => publishMessage(item.question)}
+                  className="rounded-full bg-zinc-50 px-3 py-2 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={item.question}
+                >
+                  {item.category}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div />
+          )}
           <Button
             type="submit"
             disabled={!canSendMessage}

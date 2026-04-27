@@ -16,7 +16,12 @@ export function AdminSupportRoomPage() {
   }
 
   if (roomQuery.isError || !roomQuery.data) {
-    return <AppErrorState description="문의방 상세를 불러오지 못했습니다." onRetry={() => roomQuery.refetch()} />;
+    return (
+      <AppErrorState
+        description="문의방 상세를 불러오지 못했습니다."
+        onRetry={() => roomQuery.refetch()}
+      />
+    );
   }
 
   return (
@@ -24,9 +29,9 @@ export function AdminSupportRoomPage() {
       <div className="rounded-card border border-border bg-surface p-5 shadow-card">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">운영자 문의 상세 #{roomQuery.data.roomId}</h1>
+            <h1 className="text-2xl font-bold">운영 문의 상세 #{roomQuery.data.roomId}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              status {roomQuery.data.status} · counselor {roomQuery.data.counselorUserId ?? "없음"}
+              {roomQuery.data.status} · 상담원 {roomQuery.data.counselorUserId ?? "미배정"}
             </p>
           </div>
           <AdminRoomActions room={roomQuery.data} currentUserId={user.id} role={user.role} />
@@ -36,6 +41,7 @@ export function AdminSupportRoomPage() {
         room={roomQuery.data}
         currentUserId={user.id}
         readOnly={user.role === "ROLE_SUPER_ADMIN"}
+        showSuggestedQuestions={false}
       />
     </div>
   );

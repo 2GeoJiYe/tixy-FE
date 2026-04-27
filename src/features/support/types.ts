@@ -88,4 +88,12 @@ export interface SupportListParams {
   size?: number;
 }
 
+export interface AdminRoomActionResponse {
+  roomId: number;
+  claimed?: boolean;
+  released?: boolean;
+  solved?: boolean;
+  closed?: boolean;
+}
+
 export type RoomListResponse = SliceResponse<RoomSummary>;

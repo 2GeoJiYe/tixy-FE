@@ -17,6 +17,7 @@ import { SupportHomePage } from "@/features/support/pages/support-home-page";
 import { SupportRoomsPage } from "@/features/support/pages/support-rooms-page";
 import { SupportRoomPage } from "@/features/support/pages/support-room-page";
 import { MyPage } from "@/features/member/pages/my-page";
+import { AdminSupportAssignedPage } from "@/features/admin-support/pages/admin-support-assigned-page";
 import { AdminSupportQueuePage } from "@/features/admin-support/pages/admin-support-queue-page";
 import { AdminSupportClosedPage } from "@/features/admin-support/pages/admin-support-closed-page";
 import { AdminSupportStalePage } from "@/features/admin-support/pages/admin-support-stale-page";
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
             path: "admin",
             element: <AdminLayout />,
             children: [
+              { path: "support/rooms", element: <AdminSupportAssignedPage /> },
               { path: "support/queue", element: <AdminSupportQueuePage /> },
               { path: "support/rooms/closed", element: <AdminSupportClosedPage /> },
               { path: "support/rooms/stale", element: <AdminSupportStalePage /> },

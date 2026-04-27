@@ -1,6 +1,6 @@
-import { cn } from "@/shared/lib/cn";
-import { formatDateTime } from "@/shared/lib/format";
 import type { MessageItem } from "@/features/support/types";
+import { cn } from "@/shared/lib/cn";
+import { formatUtcDateTimeToKorea } from "@/shared/lib/format";
 
 interface MessageBubbleProps {
   message: MessageItem;
@@ -11,18 +11,31 @@ interface MessageBubbleProps {
 const senderStyle = {
   USER: "bg-violet-200 text-zinc-950",
   COUNSELOR: "bg-slate-900 text-white",
-  AI: "bg-white text-slate-700 border border-border",
-  SYSTEM: "bg-muted text-muted-foreground",
+  AI: "border border-border bg-white text-slate-700",
 } as const;
 
 const senderLabel = {
   USER: "나",
   COUNSELOR: "상담원",
   AI: "AI",
-  SYSTEM: "시스템",
 } as const;
 
 export function MessageBubble({ message, isMine, readState }: MessageBubbleProps) {
+  if (message.senderType === "SYSTEM" || message.messageType === "SYSTEM") {
+    return (
+      <div className="flex justify-center px-3 py-2">
+        <div className="max-w-[88%] text-center">
+          <div className="inline-flex rounded-full border border-border bg-zinc-100 px-4 py-2 text-xs font-semibold leading-5 text-zinc-600 shadow-sm">
+            {message.content}
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            {formatUtcDateTimeToKorea(message.createdAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const showReadState = isMine && readState;
 
   return (
@@ -35,7 +48,6 @@ export function MessageBubble({ message, isMine, readState }: MessageBubbleProps
           className={cn(
             "rounded-[18px] px-4 py-3 text-sm leading-6 shadow-card",
             senderStyle[message.senderType],
-            message.senderType === "SYSTEM" && "max-w-md rounded-card",
           )}
         >
           {message.content}
@@ -53,7 +65,7 @@ export function MessageBubble({ message, isMine, readState }: MessageBubbleProps
               {readState === "unread" ? "1" : "읽음"}
             </span>
           ) : null}
-          <span>{formatDateTime(message.createdAt)}</span>
+          <span>{formatUtcDateTimeToKorea(message.createdAt)}</span>
         </div>
       </div>
     </div>
