@@ -19,6 +19,7 @@ interface SupportRoomThreadProps {
   currentUserId: number;
   readOnly?: boolean;
   showSuggestedQuestions?: boolean;
+  enableAiReplyIndicator?: boolean;
 }
 
 export function SupportRoomThread({
@@ -26,6 +27,7 @@ export function SupportRoomThread({
   currentUserId,
   readOnly = false,
   showSuggestedQuestions = true,
+  enableAiReplyIndicator = true,
 }: SupportRoomThreadProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -80,11 +82,13 @@ export function SupportRoomThread({
     },
   });
   const canSendMessage = !readOnly && room.status !== "CLOSED" && status === "connected";
-  const waitingForAiReply =
-    pendingAiReply &&
+  const aiReplyMode =
+    enableAiReplyIndicator &&
     !readOnly &&
     room.status !== "CLOSED" &&
+    room.counselorUserId == null &&
     !room.customerRequestedCounselorAt;
+  const waitingForAiReply = pendingAiReply && aiReplyMode;
 
   useEffect(() => {
     setLiveMessages([]);
@@ -93,10 +97,10 @@ export function SupportRoomThread({
   }, [room.roomId]);
 
   useEffect(() => {
-    if (room.customerRequestedCounselorAt || room.status === "CLOSED") {
+    if (!aiReplyMode) {
       setPendingAiReply(false);
     }
-  }, [room.customerRequestedCounselorAt, room.status]);
+  }, [aiReplyMode]);
 
   const peerLastReadMessageId = useMemo(() => {
     if (!lastReadEvent || lastReadEvent.readerUserId === currentUserId) {
@@ -176,7 +180,7 @@ export function SupportRoomThread({
       return;
     }
 
-    if (!room.customerRequestedCounselorAt) {
+    if (aiReplyMode) {
       setPendingAiReply(true);
     }
 

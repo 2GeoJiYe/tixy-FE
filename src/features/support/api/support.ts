@@ -137,9 +137,11 @@ function createAdminAction(pathBuilder: (roomId: number) => string) {
           method: "POST",
           token: accessToken,
         }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["support"] });
-        queryClient.invalidateQueries({ queryKey: supportKeys.room(roomId) });
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["support"] }),
+          queryClient.invalidateQueries({ queryKey: supportKeys.room(roomId) }),
+        ]);
       },
     });
   };

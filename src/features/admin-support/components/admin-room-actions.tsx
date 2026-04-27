@@ -11,13 +11,21 @@ import { getErrorMessage } from "@/shared/api/error";
 import { Button } from "@/shared/ui/button";
 import { useToast } from "@/shared/ui/toast";
 
+export type AdminRoomActionKind = "claim" | "release" | "solve" | "close";
+
 interface AdminRoomActionsProps {
   room: RoomDetail;
   currentUserId: number;
   role: AppRole;
+  onActionSuccess?: (action: AdminRoomActionKind, room: RoomDetail) => void;
 }
 
-export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActionsProps) {
+export function AdminRoomActions({
+  room,
+  currentUserId,
+  role,
+  onActionSuccess,
+}: AdminRoomActionsProps) {
   const { showToast } = useToast();
   const claimMutation = useClaimRoomMutation(room.roomId);
   const releaseMutation = useReleaseRoomMutation(room.roomId);
@@ -45,6 +53,7 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
   }, [currentUserId, role, room.counselorUserId, room.status]);
 
   const run = (
+    action: AdminRoomActionKind,
     mutation:
       | typeof claimMutation
       | typeof releaseMutation
@@ -53,7 +62,10 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
     successMessage: string,
   ) => {
     mutation.mutate(undefined, {
-      onSuccess: () => showToast(successMessage, "success"),
+      onSuccess: () => {
+        showToast(successMessage, "success");
+        onActionSuccess?.(action, room);
+      },
       onError: (error) => showToast(getErrorMessage(error), "danger"),
     });
   };
@@ -64,7 +76,7 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
         <Button
           variant="secondary"
           disabled={!permissions.canClaim || claimMutation.isPending}
-          onClick={() => run(claimMutation, "문의방을 배정했습니다.")}
+          onClick={() => run("claim", claimMutation, "문의방을 배정했습니다.")}
         >
           배정
         </Button>
@@ -73,7 +85,7 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
         <Button
           variant="secondary"
           disabled={!permissions.canRelease || releaseMutation.isPending}
-          onClick={() => run(releaseMutation, "문의방을 대기열로 돌렸습니다.")}
+          onClick={() => run("release", releaseMutation, "문의방을 대기열로 돌렸습니다.")}
         >
           해제
         </Button>
@@ -82,7 +94,7 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
         <Button
           variant="secondary"
           disabled={!permissions.canSolve || solveMutation.isPending}
-          onClick={() => run(solveMutation, "문의방을 해결 처리했습니다.")}
+          onClick={() => run("solve", solveMutation, "문의방을 해결 처리했습니다.")}
         >
           해결
         </Button>
@@ -91,7 +103,7 @@ export function AdminRoomActions({ room, currentUserId, role }: AdminRoomActions
         <Button
           variant="danger"
           disabled={!permissions.canClose || closeMutation.isPending}
-          onClick={() => run(closeMutation, "문의방을 종료했습니다.")}
+          onClick={() => run("close", closeMutation, "문의방을 종료했습니다.")}
         >
           종료
         </Button>

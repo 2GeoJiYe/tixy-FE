@@ -1,14 +1,17 @@
 import { KeyboardEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/providers/auth-provider";
-import { AdminRoomActions } from "@/features/admin-support/components/admin-room-actions";
+import {
+  AdminRoomActions,
+  type AdminRoomActionKind,
+} from "@/features/admin-support/components/admin-room-actions";
 import {
   useClaimRoomMutation,
   useRoomDetailQuery,
 } from "@/features/support/api/support";
 import { RoomListCard } from "@/features/support/components/room-list-card";
 import { SupportRoomThread } from "@/features/support/components/support-room-thread";
-import type { RoomListResponse, RoomSummary } from "@/features/support/types";
+import type { RoomDetail, RoomListResponse, RoomSummary } from "@/features/support/types";
 import { getErrorMessage } from "@/shared/api/error";
 import { cn } from "@/shared/lib/cn";
 import { formatUtcDateTimeToKorea } from "@/shared/lib/format";
@@ -191,12 +194,25 @@ export function AdminSupportWorkspace({
   onRetry,
 }: AdminSupportWorkspaceProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const selectedRoomId = Number(searchParams.get("roomId") ?? list?.items[0]?.roomId ?? 0);
+  const requestedRoomId = Number(searchParams.get("roomId") ?? 0);
+  const selectedRoom =
+    list?.items.find((room) => room.roomId === requestedRoomId) ?? list?.items[0];
+  const selectedRoomId = selectedRoom?.roomId ?? requestedRoomId;
   const isQueue = scope === "queue";
-  const selectedRoom = list?.items.find((room) => room.roomId === selectedRoomId);
   const shouldLoadRoomDetail = !isQueue || user?.role === "ROLE_SUPER_ADMIN";
   const roomQuery = useRoomDetailQuery(selectedRoomId, { enabled: shouldLoadRoomDetail });
+
+  const handleRoomActionSuccess = (action: AdminRoomActionKind, room: RoomDetail) => {
+    if (action === "release") {
+      navigate(`/admin/support/queue?roomId=${room.roomId}`, { replace: true });
+    }
+
+    if (action === "close") {
+      navigate(`/admin/support/rooms/closed?roomId=${room.roomId}`, { replace: true });
+    }
+  };
 
   if (isLoading) {
     return <div className="h-96 animate-pulse rounded-card bg-muted" />;
@@ -271,7 +287,12 @@ export function AdminSupportWorkspace({
                     상담원 {roomQuery.data.counselorUserId ?? "미배정"} · {roomQuery.data.status}
                   </p>
                 </div>
-                <AdminRoomActions room={roomQuery.data} currentUserId={user.id} role={user.role} />
+                <AdminRoomActions
+                  room={roomQuery.data}
+                  currentUserId={user.id}
+                  role={user.role}
+                  onActionSuccess={handleRoomActionSuccess}
+                />
               </div>
               <div className="mt-4 xl:hidden">
                 <Link
@@ -287,6 +308,7 @@ export function AdminSupportWorkspace({
               currentUserId={user.id}
               readOnly={user.role === "ROLE_SUPER_ADMIN"}
               showSuggestedQuestions={false}
+              enableAiReplyIndicator={false}
             />
           </>
         )}

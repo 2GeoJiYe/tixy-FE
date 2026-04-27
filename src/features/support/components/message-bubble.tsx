@@ -36,7 +36,7 @@ export function MessageBubble({ message, isMine, readState }: MessageBubbleProps
     );
   }
 
-  const showReadState = isMine && readState;
+  const showReadState = isMine && readState === "read";
 
   return (
     <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
@@ -53,18 +53,7 @@ export function MessageBubble({ message, isMine, readState }: MessageBubbleProps
           {message.content}
         </div>
         <div className={cn("mt-1 flex items-center gap-2 text-[11px] text-muted-foreground", isMine && "justify-end")}>
-          {showReadState ? (
-            <span
-              className={cn(
-                "font-black",
-                readState === "unread"
-                  ? "inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-zinc-950"
-                  : "text-violet-600",
-              )}
-            >
-              {readState === "unread" ? "1" : "읽음"}
-            </span>
-          ) : null}
+          {showReadState ? <span className="font-black text-violet-600">읽음</span> : null}
           <span>{formatUtcDateTimeToKorea(message.createdAt)}</span>
         </div>
       </div>

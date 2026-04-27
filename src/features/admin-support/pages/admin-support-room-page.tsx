@@ -1,15 +1,30 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/app/providers/auth-provider";
-import { AdminRoomActions } from "@/features/admin-support/components/admin-room-actions";
+import {
+  AdminRoomActions,
+  type AdminRoomActionKind,
+} from "@/features/admin-support/components/admin-room-actions";
 import { useRoomDetailQuery } from "@/features/support/api/support";
 import { SupportRoomThread } from "@/features/support/components/support-room-thread";
+import type { RoomDetail } from "@/features/support/types";
 import { AppErrorState } from "@/shared/ui/app-error-state";
 
 export function AdminSupportRoomPage() {
   const params = useParams();
   const roomId = Number(params.roomId);
+  const navigate = useNavigate();
   const { user } = useAuth();
   const roomQuery = useRoomDetailQuery(roomId);
+
+  const handleRoomActionSuccess = (action: AdminRoomActionKind, room: RoomDetail) => {
+    if (action === "release") {
+      navigate(`/admin/support/queue?roomId=${room.roomId}`, { replace: true });
+    }
+
+    if (action === "close") {
+      navigate(`/admin/support/rooms/closed?roomId=${room.roomId}`, { replace: true });
+    }
+  };
 
   if (roomQuery.isLoading || !user) {
     return <div className="h-80 animate-pulse rounded-card bg-muted" />;
@@ -34,7 +49,12 @@ export function AdminSupportRoomPage() {
               {roomQuery.data.status} · 상담원 {roomQuery.data.counselorUserId ?? "미배정"}
             </p>
           </div>
-          <AdminRoomActions room={roomQuery.data} currentUserId={user.id} role={user.role} />
+          <AdminRoomActions
+            room={roomQuery.data}
+            currentUserId={user.id}
+            role={user.role}
+            onActionSuccess={handleRoomActionSuccess}
+          />
         </div>
       </div>
       <SupportRoomThread
@@ -42,6 +62,7 @@ export function AdminSupportRoomPage() {
         currentUserId={user.id}
         readOnly={user.role === "ROLE_SUPER_ADMIN"}
         showSuggestedQuestions={false}
+        enableAiReplyIndicator={false}
       />
     </div>
   );
